@@ -157,9 +157,3 @@ Add header file to your project.
 ```
 
 You should now be able to use *libristnet* in your project and use any CMake supported IDE
-
-## License
-
-*MIT*
-
-Read *LICENCE.md* for details
