@@ -1,5 +1,5 @@
 //
-// Created by Anders Cedronius on 2020-03-15.
+// Created by Anders Cedronius (Edgeware AB) on 2020-03-15.
 //
 
 #ifndef CPPRISTWRAPPER__RISTNETINTERNAL_H

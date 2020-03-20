@@ -1,5 +1,5 @@
 //
-// Created by Anders Cedronius on 2020-03-14.
+// Created by Anders Cedronius (Edgeware AB) on 2020-03-14.
 //
 
 #include "rist/src/rist-private.h"

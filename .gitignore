@@ -1,0 +1,9 @@
+cmake-build-debug/
+cmake-build-release/
+rist/
+cppRISTWrapper.cbp
+cppRISTWrapper
+cppRISTWrapper.exe
+libristnet.a
+libristnet.lib
+project_rist-prefix/

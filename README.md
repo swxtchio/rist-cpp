@@ -11,9 +11,6 @@ The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating
 
 The C++ wrapper has not implemented all librist functionality at this point.
 
-## Current build status
-
-![Ubuntu 18.04](https://github.com/andersc/cppRISTWrapper/workflows/Ubuntu%2018.04/badge.svg)
 
 ## Building
 
