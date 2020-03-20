@@ -6,7 +6,7 @@
 #include <thread>
 #include "RISTNet.h"
 
-//Create the Server
+//Create the receiver
 RISTNetReciever myRISTNetReciever;
 
 int packetCounter;
@@ -66,13 +66,7 @@ void dataFromClient(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConne
     packetCounter++;
   } else {
     std::cout << "Got " << unsigned(len) << " expexted data" << std::endl;
-    uint8_t data[1000];
-    myRISTNetReciever.sendData(connection->peer,&data[0],1000);
   }
-}
-
-void dataFromServer(const uint8_t *buffer, size_t len) {
-  std::cout << "data from server" << std::endl;
 }
 
 int main() {
@@ -126,35 +120,33 @@ int main() {
   //
   //---------------------
 
-  //Create a client.
-  RISTNetClient myRISTNetClient;
-  myRISTNetClient.networkDataCallback = std::bind(&dataFromServer, std::placeholders::_1, std::placeholders::_2);
+  //Create a sender.
+  RISTNetSender myRISTNetSender;
 
   //List of server ip/ports connecting the client to + weight of the interfaces
-  std::vector<std::tuple<std::string, std::string, uint32_t >> serverAdresses;
-  serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t>("127.0.0.1", "8000", 5));
+  std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
+  serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("127.0.0.1", "8000", 5, false));
 
-  struct rist_peer_config myClientConfig;
-  myClientConfig.localport = nullptr;
-  myClientConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-  myClientConfig.recovery_maxbitrate = 100;
-  myClientConfig.recovery_maxbitrate_return = 0;
-  myClientConfig.recovery_length_min = 1000;
-  myClientConfig.recovery_length_max = 1000;
-  myClientConfig.recover_reorder_buffer = 25;
-  myClientConfig.recovery_rtt_min = 50;
-  myClientConfig.recovery_rtt_max = 500;
-  myClientConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-  myClientConfig.bufferbloat_limit = 6;
-  myClientConfig.bufferbloat_hard_limit = 20;
-  myRISTNetClient.startClient(serverAdresses, myClientConfig, RIST_LOG_WARN);
+  struct rist_peer_config mySendPeer = {0};
+  mySendPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
+  mySendPeer.recovery_maxbitrate = 100;
+  mySendPeer.recovery_maxbitrate_return = 0;
+  mySendPeer.recovery_length_min = 1000;
+  mySendPeer.recovery_length_max = 1000;
+  mySendPeer.recover_reorder_buffer = 25;
+  mySendPeer.recovery_rtt_min = 50;
+  mySendPeer.recovery_rtt_max = 500;
+  mySendPeer.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
+  mySendPeer.bufferbloat_limit = 6;
+  mySendPeer.bufferbloat_hard_limit = 20;
+  myRISTNetSender.initSender(serverAdresses, mySendPeer, RIST_LOG_WARN);
 
   std::vector<uint8_t> mydata(1000);
   std::generate(mydata.begin(), mydata.end(), [n = 0]() mutable { return n++; });
   while (packetCounter++ < 10) {
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     std::cout << "Send packet" << std::endl;
-    myRISTNetClient.sendData((const uint8_t *) mydata.data(), mydata.size());
+    myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
   }
 
   std::cout << "RIST test end" << std::endl;

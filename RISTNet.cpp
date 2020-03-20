@@ -93,7 +93,6 @@ void RISTNetReciever::receiveData(void *arg, struct rist_peer *peer, uint64_t fl
       netObj = nullptr;
     } else {
       netObj = weakSelf->clientList.find(peer)->second;
-      netObj->peer = peer;
     }
     weakSelf->mClientListMtx.unlock();
 
@@ -111,7 +110,6 @@ int RISTNetReciever::clientConnect(void *arg, char* connecting_ip, uint16_t conn
   }
   if (connectionObject) {
     weakSelf->mClientListMtx.lock();
-    connectionObject->peer = peer;
     weakSelf->clientList[peer] = connectionObject;
     weakSelf->mClientListMtx.unlock();
     return 1;
@@ -122,7 +120,7 @@ int RISTNetReciever::clientConnect(void *arg, char* connecting_ip, uint16_t conn
 void RISTNetReciever::clientDisconnect(void *arg, struct rist_peer *peer) {
   RISTNetReciever *weakSelf=(RISTNetReciever *)arg;
   if ( weakSelf -> clientList.find(peer) == weakSelf -> clientList.end() ) {
-    LOGGER(true, LOGG_ERROR, "RISTNetServer::clientDisconnect unknown peer");
+    LOGGER(true, LOGG_ERROR, "RISTNetReciever::clientDisconnect unknown peer");
   } else {
     weakSelf->mClientListMtx.lock();
     weakSelf->clientList.erase(weakSelf->clientList.find(peer)->first);
@@ -212,34 +210,21 @@ bool RISTNetReciever::initReceiver(std::vector<std::tuple<std::string, std::stri
   return true;
 }
 
-bool RISTNetReciever::sendData(struct rist_peer *peer,const uint8_t *data, size_t size) {
-  if (!mRistReceiver) {
-    LOGGER(true, LOGG_ERROR, "Receiver not active.");
-    return false;
-  }
-  int status = rist_server_write_oob(mRistReceiver, peer, data, size);
-  if (status) {
-    LOGGER(true, LOGG_ERROR, "rist_server_write_oob fail.");
-    return false;
-  }
-  return true;
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
-// RISTNetClient  --  CLIENT
+// RISTNetSender  --  CLIENT
 //
 //
 //---------------------------------------------------------------------------------------------------------------------
 
-RISTNetClient::RISTNetClient() {
-  LOGGER(false, LOGG_NOTIFY, "RISTNetClient constructed");
+RISTNetSender::RISTNetSender() {
+  LOGGER(false, LOGG_NOTIFY, "RISTNetSender constructed");
 }
 
-RISTNetClient::~RISTNetClient() {
-  if (mRistClient) {
-    int status = rist_client_destroy(mRistClient);
+RISTNetSender::~RISTNetSender() {
+  if (mRistSender) {
+    int status = rist_client_destroy(mRistSender);
     if (status) {
       LOGGER(true, LOGG_ERROR, "rist_client_destroy fail.");
     }
@@ -251,22 +236,34 @@ RISTNetClient::~RISTNetClient() {
 // RISTNetClient  --  Callbacks --- Start
 //---------------------------------------------------------------------------------------------------------------------
 
-void RISTNetClient::receiveData(void *arg, struct rist_peer *peer, const void *buffer, size_t len) {
-  RISTNetClient *weakSelf=(RISTNetClient *)arg;
+void RISTNetSender::receiveData(void *arg, struct rist_peer *peer, const void *buffer, size_t len) {
+  RISTNetSender *weakSelf=(RISTNetSender *)arg;
+  NetworkConnection dummyNetworkConnection;
   if (weakSelf -> networkDataCallback) {
-    weakSelf -> networkDataCallback((const uint8_t*)buffer, len);
+    weakSelf -> networkDataCallback((const uint8_t *)buffer, len);
   } else {
     LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented");
   }
 
 }
 
-int RISTNetClient::serverConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer) {
-  //The C++ wrapper is rejecting all server connections at this time
+int RISTNetSender::clientConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer) {
+  RISTNetSender *weakSelf=(RISTNetSender *)arg;
+  std::shared_ptr<NetworkConnection> connectionObject = nullptr;
+  if (weakSelf->validateConnectionCallback) {
+    connectionObject =  weakSelf->validateConnectionCallback(std::string(connecting_ip), connecting_port);
+  }
+  if (connectionObject) {
+    weakSelf->mClientListMtx.lock();
+    weakSelf->clientList[peer] = connectionObject;
+    weakSelf->mClientListMtx.unlock();
+    return 1;
+  }
   return 0;
 }
 
-void RISTNetClient::serverDisconnect(void *arg, struct rist_peer *peer) {
+
+void RISTNetSender::clientDisconnect(void *arg, struct rist_peer *peer) {
 
 }
 
@@ -275,18 +272,18 @@ void RISTNetClient::serverDisconnect(void *arg, struct rist_peer *peer) {
 //---------------------------------------------------------------------------------------------------------------------
 
 
-bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string, uint32_t>> &serversList,
-                                rist_peer_config &peerConfig,
-                                enum rist_log_level logLevel,
-                                uint32_t keepAlive,
-                                uint32_t timeOut) {
+bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, uint32_t, bool>> &serversList,
+                               rist_peer_config &peerConfig,
+                               enum rist_log_level logLevel,
+                               uint32_t keepAlive,
+                               uint32_t timeOut){
   if (!serversList.size()) {
     LOGGER(true, LOGG_ERROR, "list of servers is empty.");
     return false;
   }
 
   int status;
-  status = rist_client_create(&mRistClient,RIST_MAIN);
+  status = rist_client_create(&mRistSender,RIST_MAIN);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_create fail.");
     return false;
@@ -300,7 +297,7 @@ bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string,
   uint32_t adv_flow_id = (uint32_t)(now >> 16);
   adv_flow_id &= ~(1UL << 0);
 
-  status = rist_client_init(mRistClient, adv_flow_id, logLevel, serverConnect, serverDisconnect, this);
+  status = rist_client_init(mRistSender, adv_flow_id, logLevel, clientConnect, clientDisconnect, this);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_init fail.");
     return false;
@@ -308,10 +305,11 @@ bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string,
 
   for (auto &server: serversList) {
     std::string ristURL;
-    auto ip = std::get<0>(server);
-    auto port = std::get<1>(server);
-    auto weight = std::get<2>(server);
-    if (!ristNetBuildRISTURL(ip, port, ristURL, false)) {
+    auto listIP = std::get<0>(server);
+    auto listPort = std::get<1>(server);
+    auto listWeight = std::get<2>(server);
+    auto listMode = std::get<3>(server);
+    if (!ristNetBuildRISTURL(listIP, listPort, ristURL, listMode)) {
       LOGGER(true, LOGG_ERROR, "Failed building URL");
       return false;
     }
@@ -326,7 +324,7 @@ bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string,
     mRistPeerConfig.recover_reorder_buffer = peerConfig.recover_reorder_buffer;
     mRistPeerConfig.recovery_rtt_min = peerConfig.recovery_rtt_min;
     mRistPeerConfig.recovery_rtt_max = peerConfig.recovery_rtt_max;
-    mRistPeerConfig.weight = weight;
+    mRistPeerConfig.weight = listWeight;
     mRistPeerConfig.bufferbloat_mode = peerConfig.bufferbloat_mode;
     mRistPeerConfig.bufferbloat_limit = peerConfig.bufferbloat_limit;
     mRistPeerConfig.bufferbloat_hard_limit = peerConfig.bufferbloat_hard_limit;
@@ -334,7 +332,7 @@ bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string,
     struct rist_peer *peer;
     mPeerListMtx.lock();
     mRistPeerList.push_back(peer);
-    status = rist_client_add_peer(mRistClient, &mRistPeerConfig, &mRistPeerList.back());
+    status = rist_client_add_peer(mRistSender, &mRistPeerConfig, &mRistPeerList.back());
     mPeerListMtx.unlock();
     if (status) {
       LOGGER(true, LOGG_ERROR, "rist_client_add_peer fail.");
@@ -345,25 +343,25 @@ bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string,
 
   }
 
-  status = rist_client_set_keepalive_timeout(mRistClient, keepAlive);
+  status = rist_client_set_keepalive_timeout(mRistSender, keepAlive);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_set_keepalive_timeout fail.");
     return false;
   }
 
-  status = rist_client_set_session_timeout(mRistClient, timeOut);
+  status = rist_client_set_session_timeout(mRistSender, timeOut);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_set_session_timeout fail.");
     return false;
   }
 
-  status = rist_client_oob_enable(mRistClient, receiveData, this);
+  status = rist_client_oob_enable(mRistSender, receiveData, this);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_oob_enable fail.");
     return false;
   }
 
-  status = rist_client_start(mRistClient);
+  status = rist_client_start(mRistSender);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_start fail.");
     return false;
@@ -372,9 +370,9 @@ bool RISTNetClient::startClient(std::vector<std::tuple<std::string, std::string,
   return true;
 }
 
-bool RISTNetClient::sendData(const uint8_t *data, size_t size) {
+bool RISTNetSender::sendData(const uint8_t *data, size_t size) {
   int status;
-  status = rist_client_write(mRistClient,data,size,0,0);
+  status = rist_client_write(mRistSender,data,size,0,0);
   if (status) {
     LOGGER(true, LOGG_ERROR, "rist_client_write failed: ");
     return false;
