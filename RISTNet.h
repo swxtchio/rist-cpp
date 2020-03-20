@@ -28,18 +28,18 @@ public:
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
-// RISTNetServer  --  SERVER
+// RISTNetReciever  --  RECIEVER
 //
 //
 //---------------------------------------------------------------------------------------------------------------------
 
-class RISTNetServer {
+class RISTNetReciever {
 public:
 
-  RISTNetServer();
-  virtual ~RISTNetServer();
+  RISTNetReciever();
+  virtual ~RISTNetReciever();
 
-  bool startServer(std::vector<std::tuple<std::string, std::string>> &interfaceList,
+  bool initReceiver(std::vector<std::tuple<std::string, std::string, bool>> &interfaceList,
                    rist_peer_config &peerConfig, enum rist_log_level logLevel = RIST_LOG_QUIET);
   void getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
   void closeAllClientConnections();
@@ -50,10 +50,10 @@ public:
   std::function<std::shared_ptr<NetworkConnection>(std::string ipAddress, uint16_t port)> validateConnectionCallback = nullptr;
 
   // delete copy and move constructors and assign operators
-  RISTNetServer(RISTNetServer const&) = delete;             // Copy construct
-  RISTNetServer(RISTNetServer&&) = delete;                  // Move construct
-  RISTNetServer& operator=(RISTNetServer const&) = delete;  // Copy assign
-  RISTNetServer& operator=(RISTNetServer &&) = delete;      // Move assign
+  RISTNetReciever(RISTNetReciever const&) = delete;             // Copy construct
+  RISTNetReciever(RISTNetReciever&&) = delete;                  // Move construct
+  RISTNetReciever& operator=(RISTNetReciever const&) = delete;  // Copy assign
+  RISTNetReciever& operator=(RISTNetReciever &&) = delete;      // Move assign
 
   std::vector<std::tuple<std::string, std::string>> mServerList;
 
@@ -61,7 +61,7 @@ private:
   static void receiveData(void *arg, struct rist_peer *peer, uint64_t flow_id, const void *buf, size_t len, uint16_t src_port, uint16_t dst_port);
   static void clientDisconnect(void *arg, struct rist_peer *peer);
   static int clientConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer);
-  rist_server *mRistServer = nullptr;
+  rist_server *mRistReceiver = nullptr;
   rist_peer_config mRistPeerConfig;
   std::mutex mClientListMtx;
   std::map<struct rist_peer*, std::shared_ptr<NetworkConnection>> clientList = {};

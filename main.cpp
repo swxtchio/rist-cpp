@@ -7,7 +7,7 @@
 #include "RISTNet.h"
 
 //Create the Server
-RISTNetServer myRISTNetServer;
+RISTNetReciever myRISTNetReciever;
 
 int packetCounter;
 
@@ -67,7 +67,7 @@ void dataFromClient(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConne
   } else {
     std::cout << "Got " << unsigned(len) << " expexted data" << std::endl;
     uint8_t data[1000];
-    myRISTNetServer.sendData(connection->peer,&data[0],1000);
+    myRISTNetReciever.sendData(connection->peer,&data[0],1000);
   }
 }
 
@@ -82,10 +82,10 @@ int main() {
 
 
   //validate the connecting client
-  myRISTNetServer.validateConnectionCallback =
+  myRISTNetReciever.validateConnectionCallback =
       std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
   //recieve data from the client
-  myRISTNetServer.networkDataCallback =
+  myRISTNetReciever.networkDataCallback =
       std::bind(&dataFromClient, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
   //---------------------
@@ -95,27 +95,27 @@ int main() {
   //---------------------
 
   //List of interfaces to bind the server to
-  std::vector<std::tuple<std::string, std::string>> interfaceListServer;
-  interfaceListServer.push_back(std::tuple<std::string, std::string>("0.0.0.0", "8000"));
-  interfaceListServer.push_back(std::tuple<std::string, std::string>("0.0.0.0", "9000"));
+  std::vector<std::tuple<std::string, std::string, bool>> interfaceListServer;
+  interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "8000", true));
+  interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "9000", true));
 
   //Server Configuration (please see librist for details)
-  struct rist_peer_config myServerConfig;
-  myServerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-  myServerConfig.recovery_maxbitrate = 100;
-  myServerConfig.recovery_maxbitrate_return = 0;
-  myServerConfig.recovery_length_min = 1000;
-  myServerConfig.recovery_length_max = 1000;
-  myServerConfig.recover_reorder_buffer = 25;
-  myServerConfig.recovery_rtt_min = 50;
-  myServerConfig.recovery_rtt_max = 500;
-  myServerConfig.weight = 5;
-  myServerConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-  myServerConfig.bufferbloat_limit = 6;
-  myServerConfig.bufferbloat_hard_limit = 20;
+  struct rist_peer_config myReceiverPeer;
+  myReceiverPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
+  myReceiverPeer.recovery_maxbitrate = 100;
+  myReceiverPeer.recovery_maxbitrate_return = 0;
+  myReceiverPeer.recovery_length_min = 1000;
+  myReceiverPeer.recovery_length_max = 1000;
+  myReceiverPeer.recover_reorder_buffer = 25;
+  myReceiverPeer.recovery_rtt_min = 50;
+  myReceiverPeer.recovery_rtt_max = 500;
+  myReceiverPeer.weight = 5;
+  myReceiverPeer.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
+  myReceiverPeer.bufferbloat_limit = 6;
+  myReceiverPeer.bufferbloat_hard_limit = 20;
 
   //Start the server
-  if (!myRISTNetServer.startServer(interfaceListServer, myServerConfig, RIST_LOG_WARN)) {
+  if (!myRISTNetReciever.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
     std::cout << "Failed starting the server" << std::endl;
     return EXIT_FAILURE;
   }
