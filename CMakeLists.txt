@@ -33,9 +33,12 @@ set_property(TARGET rist PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/
 add_dependencies(rist project_rist)
 #]]
 
-#When developing librist I from ${CMAKE_CURRENT_SOURCE_DIR} / mkdir rist / then ->
+#When developing librist then ->
+#
+#remove the existing rist directory then->
+#${CMAKE_CURRENT_SOURCE_DIR} / mkdir rist
 #git clone (repo) ./rist
-#then enable the build below and block comment the above.
+#then enable the build block below and block comment the above build.
 #[[
 file(GLOB base "${CMAKE_CURRENT_SOURCE_DIR}/rist/src/*.c")
 file(GLOB extra "${CMAKE_CURRENT_SOURCE_DIR}/rist/extra/*.c")
@@ -47,7 +50,7 @@ target_link_libraries(rist Threads::Threads)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/inc/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/src/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/extra/)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/inc)
 
 add_library(ristnet STATIC RISTNet.cpp)
 target_link_libraries(ristnet rist Threads::Threads)
