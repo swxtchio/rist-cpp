@@ -7,7 +7,7 @@
 #include "RISTNet.h"
 
 //Create the receiver
-RISTNetReciever myRISTNetReciever;
+RISTNetReceiver myRISTNetReceiver;
 
 int packetCounter;
 
@@ -62,7 +62,7 @@ void dataFromClient(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConne
   }
 
   if (testFail) {
-    std::cout << "Did not recieve the correct data" << std::endl;
+    std::cout << "Did not receive the correct data" << std::endl;
     packetCounter++;
   } else {
     std::cout << "Got " << unsigned(len) << " expexted data" << std::endl;
@@ -76,10 +76,10 @@ int main() {
 
 
   //validate the connecting client
-  myRISTNetReciever.validateConnectionCallback =
+  myRISTNetReceiver.validateConnectionCallback =
       std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
-  //recieve data from the client
-  myRISTNetReciever.networkDataCallback =
+  //receive data from the client
+  myRISTNetReceiver.networkDataCallback =
       std::bind(&dataFromClient, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
   //---------------------
@@ -109,7 +109,7 @@ int main() {
   myReceiverPeer.bufferbloat_hard_limit = 20;
 
   //Initialize the receiver
-  if (!myRISTNetReciever.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
+  if (!myRISTNetReceiver.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
     std::cout << "Failed starting the server" << std::endl;
     return EXIT_FAILURE;
   }

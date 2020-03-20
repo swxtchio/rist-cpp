@@ -61,31 +61,31 @@ bool ristNetBuildRISTURL(std::string ip, std::string port, std::string &url, boo
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
-// RISTNetReciever  --  RECEIVER
+// RISTNetReceiver  --  RECEIVER
 //
 //
 //---------------------------------------------------------------------------------------------------------------------
 
-RISTNetReciever::RISTNetReciever() {
-  LOGGER(false, LOGG_NOTIFY, "RISTNetReciever constructed");
+RISTNetReceiver::RISTNetReceiver() {
+  LOGGER(false, LOGG_NOTIFY, "RISTNetReceiver constructed");
 }
 
-RISTNetReciever::~RISTNetReciever() {
+RISTNetReceiver::~RISTNetReceiver() {
   if (mRistReceiver) {
     int status = rist_server_shutdown(mRistReceiver);
     if (status) {
       LOGGER(true, LOGG_ERROR, "rist_server_shutdown failure");
     }
   }
-  LOGGER(false, LOGG_NOTIFY, "RISTNetReciever destruct");
+  LOGGER(false, LOGG_NOTIFY, "RISTNetReceiver destruct");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// RISTNetReciever  --  Callbacks --- Start
+// RISTNetReceiver  --  Callbacks --- Start
 //---------------------------------------------------------------------------------------------------------------------
 
-void RISTNetReciever::receiveData(void *arg, struct rist_peer *peer, uint64_t flow_id, const void *buf, size_t len, uint16_t src_port, uint16_t dst_port) {
-  RISTNetReciever *weakSelf=(RISTNetReciever *)arg;
+void RISTNetReceiver::receiveData(void *arg, struct rist_peer *peer, uint64_t flow_id, const void *buf, size_t len, uint16_t src_port, uint16_t dst_port) {
+  RISTNetReceiver *weakSelf=(RISTNetReceiver *)arg;
   if (weakSelf -> networkDataCallback) {
     weakSelf->mClientListMtx.lock();
     std::shared_ptr<NetworkConnection> netObj;
@@ -102,8 +102,8 @@ void RISTNetReciever::receiveData(void *arg, struct rist_peer *peer, uint64_t fl
   }
 }
 
-int RISTNetReciever::clientConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer) {
-  RISTNetReciever *weakSelf=(RISTNetReciever *)arg;
+int RISTNetReceiver::clientConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer) {
+  RISTNetReceiver *weakSelf=(RISTNetReceiver *)arg;
   std::shared_ptr<NetworkConnection> connectionObject = nullptr;
   if (weakSelf->validateConnectionCallback) {
     connectionObject =  weakSelf->validateConnectionCallback(std::string(connecting_ip), connecting_port);
@@ -117,10 +117,10 @@ int RISTNetReciever::clientConnect(void *arg, char* connecting_ip, uint16_t conn
   return 0;
 }
 
-void RISTNetReciever::clientDisconnect(void *arg, struct rist_peer *peer) {
-  RISTNetReciever *weakSelf=(RISTNetReciever *)arg;
+void RISTNetReceiver::clientDisconnect(void *arg, struct rist_peer *peer) {
+  RISTNetReceiver *weakSelf=(RISTNetReceiver *)arg;
   if ( weakSelf -> clientList.find(peer) == weakSelf -> clientList.end() ) {
-    LOGGER(true, LOGG_ERROR, "RISTNetReciever::clientDisconnect unknown peer");
+    LOGGER(true, LOGG_ERROR, "RISTNetReceiver::clientDisconnect unknown peer");
   } else {
     weakSelf->mClientListMtx.lock();
     weakSelf->clientList.erase(weakSelf->clientList.find(peer)->first);
@@ -129,10 +129,10 @@ void RISTNetReciever::clientDisconnect(void *arg, struct rist_peer *peer) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// RISTNetReciever  --  Callbacks --- End
+// RISTNetReceiver  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
 
-void RISTNetReciever::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> function) {
+void RISTNetReceiver::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> function) {
   mClientListMtx.lock();
   if (function) {
     function(clientList);
@@ -140,7 +140,7 @@ void RISTNetReciever::getActiveClients(std::function<void(std::map<struct rist_p
   mClientListMtx.unlock();
 }
 
-void RISTNetReciever::closeAllClientConnections() {
+void RISTNetReceiver::closeAllClientConnections() {
   mClientListMtx.lock();
   for (auto &x: clientList) {
     struct rist_peer *peer = x.first;
@@ -153,7 +153,7 @@ void RISTNetReciever::closeAllClientConnections() {
   mClientListMtx.unlock();
 }
 
-bool RISTNetReciever::initReceiver(std::vector<std::tuple<std::string, std::string, bool>> &interfaceList,
+bool RISTNetReceiver::initReceiver(std::vector<std::tuple<std::string, std::string, bool>> &interfaceList,
                                 rist_peer_config &peerConfig, enum rist_log_level logLevel) {
   if (!interfaceList.size()) {
     LOGGER(true, LOGG_ERROR, "Interface list is empty.");
@@ -233,14 +233,21 @@ RISTNetSender::~RISTNetSender() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// RISTNetClient  --  Callbacks --- Start
+// RISTNetSender  --  Callbacks --- Start
 //---------------------------------------------------------------------------------------------------------------------
 
 void RISTNetSender::receiveData(void *arg, struct rist_peer *peer, const void *buffer, size_t len) {
   RISTNetSender *weakSelf=(RISTNetSender *)arg;
-  NetworkConnection dummyNetworkConnection;
   if (weakSelf -> networkDataCallback) {
-    weakSelf -> networkDataCallback((const uint8_t *)buffer, len);
+    weakSelf->mClientListMtx.lock();
+    std::shared_ptr<NetworkConnection> netObj;
+    if ( weakSelf -> clientList.find(peer) == weakSelf -> clientList.end() ) {
+      netObj = nullptr;
+    } else {
+      netObj = weakSelf->clientList.find(peer)->second;
+    }
+    weakSelf->mClientListMtx.unlock();
+    weakSelf -> networkDataCallback((const uint8_t*)buffer, len, netObj);
   } else {
     LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented");
   }
@@ -262,15 +269,41 @@ int RISTNetSender::clientConnect(void *arg, char* connecting_ip, uint16_t connec
   return 0;
 }
 
-
 void RISTNetSender::clientDisconnect(void *arg, struct rist_peer *peer) {
-
+  RISTNetSender *weakSelf=(RISTNetSender *)arg;
+  if ( weakSelf -> clientList.find(peer) == weakSelf -> clientList.end() ) {
+    LOGGER(true, LOGG_ERROR, "RISTNetReceiver::clientDisconnect unknown peer");
+  } else {
+    weakSelf->mClientListMtx.lock();
+    weakSelf->clientList.erase(weakSelf->clientList.find(peer)->first);
+    weakSelf->mClientListMtx.unlock();
+  }
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// RISTNetClient  --  Callbacks --- End
+// RISTNetSender  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
 
+void RISTNetSender::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> function) {
+  mClientListMtx.lock();
+  if (function) {
+    function(clientList);
+  }
+  mClientListMtx.unlock();
+}
+
+void RISTNetSender::closeAllClientConnections() {
+  mClientListMtx.lock();
+  for (auto &x: clientList) {
+    struct rist_peer *peer = x.first;
+    int status = rist_client_remove_peer(mRistSender, peer);
+    if (status) {
+      LOGGER(true, LOGG_ERROR, "rist_client_remove_peer failed: ");
+    }
+  }
+  clientList.clear();
+  mClientListMtx.unlock();
+}
 
 bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, uint32_t, bool>> &serversList,
                                rist_peer_config &peerConfig,

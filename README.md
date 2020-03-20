@@ -45,14 +45,14 @@ The cppRISTWrapper > RISTNet class/library is divided into Server/Client. The Se
 ```cpp
  
  //Create the receiver
- RISTNetReciever myRISTNetReciever;
+ RISTNetReceiver myRISTNetReceiver;
 
 //Register the callbacks  
 //validate the connecting client
-myRISTNetReciever.validateConnectionCallback =
+myRISTNetReceiver =
       std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
 //recieve data from the client
-myRISTNetReciever.networkDataCallback =
+myRISTNetReceiver =
       std::bind(&dataFromClient, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
 //List of interfaces to bind the server to (true means listen mode)
@@ -76,7 +76,7 @@ myReceiverPeer.bufferbloat_limit = 6;
 myReceiverPeer.bufferbloat_hard_limit = 20;
 
 //Initialize the receiver
-if (!myRISTNetReciever.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
+if (!myRISTNetReceiver.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
   std::cout << "Failed starting the server" << std::endl;
   return EXIT_FAILURE;
 }
