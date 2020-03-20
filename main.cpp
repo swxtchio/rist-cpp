@@ -84,7 +84,7 @@ int main() {
 
   //---------------------
   //
-  // set-up the server
+  // set-up the receiver
   //
   //---------------------
 
@@ -93,7 +93,7 @@ int main() {
   interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "8000", true));
   interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "9000", true));
 
-  //Server Configuration (please see librist for details)
+  //Receiver configuration (please see librist for details)
   struct rist_peer_config myReceiverPeer;
   myReceiverPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
   myReceiverPeer.recovery_maxbitrate = 100;
@@ -108,7 +108,7 @@ int main() {
   myReceiverPeer.bufferbloat_limit = 6;
   myReceiverPeer.bufferbloat_hard_limit = 20;
 
-  //Start the server
+  //Initialize the receiver
   if (!myRISTNetReciever.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
     std::cout << "Failed starting the server" << std::endl;
     return EXIT_FAILURE;
@@ -116,14 +116,14 @@ int main() {
 
   //---------------------
   //
-  // set-up the client
+  // set-up the sender
   //
   //---------------------
 
   //Create a sender.
   RISTNetSender myRISTNetSender;
 
-  //List of server ip/ports connecting the client to + weight of the interfaces
+  //List of ip/ports, weight of the interface and listen(true) or send mode
   std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
   serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("127.0.0.1", "8000", 5, false));
 

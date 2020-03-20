@@ -3,10 +3,6 @@
 # cppRISTWrapper
 
 
-**(UNDER CONSTRUCTION.. Is currently not working)**
-
-
-
 The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating a thin C++ layer around librist.
 
 The C++ wrapper has not implemented all librist functionality at this point.
@@ -44,73 +40,76 @@ A static RIST C++ wrapper library
 
 The cppRISTWrapper > RISTNet class/library is divided into Server/Client. The Server/Client creation and configuration is detailed below.
 
-**Server:**
+**Reciever:**
 
 ```cpp
  
-//Create the server 
-RISTNetServer myRISTNetServer;
+ //Create the receiver
+ RISTNetReciever myRISTNetReciever;
 
-//Register the callback  
-myRISTNetServer.networkDataCallback=std::bind(&dataFromClient, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+//Register the callbacks  
+//validate the connecting client
+myRISTNetReciever.validateConnectionCallback =
+      std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
+//recieve data from the client
+myRISTNetReciever.networkDataCallback =
+      std::bind(&dataFromClient, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-//Build a list of interfaces:ports binding the server to (IPv4/IPv6)
-//Atleast one interface has to be provided
-std::vector<std::tuple<std::string, std::string>> interfaceListServer;
-interfaceListServer.push_back(std::tuple<std::string, std::string>("0.0.0.0", "8000"));
-interfaceListServer.push_back(std::tuple<std::string, std::string>("0.0.0.0", "9000"));
+//List of interfaces to bind the server to (true means listen mode)
+std::vector<std::tuple<std::string, std::string, bool>> interfaceListServer;
+interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "8000", true));
+interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "9000", true));
 
-//Server Configuration
-struct rist_peer_config myServerConfig;
-myServerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-myServerConfig.recovery_maxbitrate = 100;
-myServerConfig.recovery_maxbitrate_return = 0;
-myServerConfig.recovery_length_min = 1000;
-myServerConfig.recovery_length_max = 1000;
-myServerConfig.recover_reorder_buffer = 25;
-myServerConfig.recovery_rtt_min = 50;
-myServerConfig.recovery_rtt_max = 500;
-myServerConfig.weight = 5;
-myServerConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-myServerConfig.bufferbloat_limit = 6;
-myServerConfig.bufferbloat_hard_limit = 20;
+//Receiver configuration (please see librist for details)
+struct rist_peer_config myReceiverPeer;
+myReceiverPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
+myReceiverPeer.recovery_maxbitrate = 100;
+myReceiverPeer.recovery_maxbitrate_return = 0;
+myReceiverPeer.recovery_length_min = 1000;
+myReceiverPeer.recovery_length_max = 1000;
+myReceiverPeer.recover_reorder_buffer = 25;
+myReceiverPeer.recovery_rtt_min = 50;
+myReceiverPeer.recovery_rtt_max = 500;
+myReceiverPeer.weight = 5;
+myReceiverPeer.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
+myReceiverPeer.bufferbloat_limit = 6;
+myReceiverPeer.bufferbloat_hard_limit = 20;
 
-//Start the server
-if (!myRISTNetServer.startServer(interfaceListServer, myServerConfig)) {
+//Initialize the receiver
+if (!myRISTNetReciever.initReceiver(interfaceListServer, myReceiverPeer, RIST_LOG_WARN)) {
   std::cout << "Failed starting the server" << std::endl;
-  return EXIT_FAILURE; //Deal with the error the way you want.
+  return EXIT_FAILURE;
 }
 
 ```
 
-**Client:**
+**Sender:**
 
 ```cpp
 
-//Create the client
-RISTNetClient myRISTNetClient;
+//Create a sender.
+RISTNetSender myRISTNetSender;
 
-//List of server ip/ports connecting the client to + weight of the interfaces
-std::vector<std::tuple<std::string, std::string, uint32_t >> serverAdresses;
-serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t>("127.0.0.1", "8000", 5));
+//List of ip/ports, weight of the interface and listen(true) or send mode
+std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
+serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("127.0.0.1", "8000", 5, false));
 
-struct rist_peer_config myClientConfig;
-myClientConfig.localport = nullptr;
-myClientConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-myClientConfig.recovery_maxbitrate = 100;
-myClientConfig.recovery_maxbitrate_return = 0;
-myClientConfig.recovery_length_min = 1000;
-myClientConfig.recovery_length_max = 1000;
-myClientConfig.recover_reorder_buffer = 25;
-myClientConfig.recovery_rtt_min = 50;
-myClientConfig.recovery_rtt_max = 500;
-myClientConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-myClientConfig.bufferbloat_limit = 6;
-myClientConfig.bufferbloat_hard_limit = 20;
-myRISTNetClient.startClient(serverAdresses, myClientConfig);
+struct rist_peer_config mySendPeer = {0};
+mySendPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
+mySendPeer.recovery_maxbitrate = 100;
+mySendPeer.recovery_maxbitrate_return = 0;
+mySendPeer.recovery_length_min = 1000;
+mySendPeer.recovery_length_max = 1000;
+mySendPeer.recover_reorder_buffer = 25;
+mySendPeer.recovery_rtt_min = 50;
+mySendPeer.recovery_rtt_max = 500;
+mySendPeer.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
+mySendPeer.bufferbloat_limit = 6;
+mySendPeer.bufferbloat_hard_limit = 20;
+myRISTNetSender.initSender(serverAdresses, mySendPeer, RIST_LOG_WARN);
 
-//Send data to the server 
-myRISTNetClient.sendData((const uint8_t *)mydata.data(), mydata.size());
+//Send data to a receiver 
+myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
 
 ```
 
