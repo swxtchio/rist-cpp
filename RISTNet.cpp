@@ -13,17 +13,17 @@
 //
 //---------------------------------------------------------------------------------------------------------------------
 
-bool ristNetIsIPv4(const std::string &str) {
+static bool ristNetIsIPv4(const std::string &str) {
   struct sockaddr_in sa;
   return inet_pton(AF_INET, str.c_str(), &(sa.sin_addr)) != 0;
 }
 
-bool ristNetIsIPv6(const std::string &str) {
+static bool ristNetIsIPv6(const std::string &str) {
   struct sockaddr_in6 sa;
   return inet_pton(AF_INET6, str.c_str(), &(sa.sin6_addr)) != 0;
 }
 
-bool ristNetBuildRISTURL(std::string ip, std::string port, std::string &url, bool listen) {
+static bool ristNetBuildRISTURL(std::string ip, std::string port, std::string &url, bool listen) {
   int ipType = AF_INET;
   if (ristNetIsIPv4(ip)) {
     ipType = AF_INET;
@@ -94,9 +94,8 @@ void RISTNetReceiver::receiveData(void *arg, struct rist_peer *peer, uint64_t fl
     } else {
       netObj = weakSelf->clientList.find(peer)->second;
     }
-    weakSelf->mClientListMtx.unlock();
-
-   weakSelf -> networkDataCallback((const uint8_t*)buf, len, netObj);
+    weakSelf -> mClientListMtx.unlock();
+    weakSelf -> networkDataCallback((const uint8_t*)buf, len, netObj);
   } else {
     LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented");
   }
@@ -105,13 +104,13 @@ void RISTNetReceiver::receiveData(void *arg, struct rist_peer *peer, uint64_t fl
 int RISTNetReceiver::clientConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer) {
   RISTNetReceiver *weakSelf=(RISTNetReceiver *)arg;
   std::shared_ptr<NetworkConnection> connectionObject = nullptr;
-  if (weakSelf->validateConnectionCallback) {
+  if (weakSelf -> validateConnectionCallback) {
     connectionObject =  weakSelf->validateConnectionCallback(std::string(connecting_ip), connecting_port);
   }
   if (connectionObject) {
-    weakSelf->mClientListMtx.lock();
-    weakSelf->clientList[peer] = connectionObject;
-    weakSelf->mClientListMtx.unlock();
+    weakSelf -> mClientListMtx.lock();
+    weakSelf -> clientList[peer] = connectionObject;
+    weakSelf -> mClientListMtx.unlock();
     return 1;
   }
   return 0;
@@ -122,9 +121,9 @@ void RISTNetReceiver::clientDisconnect(void *arg, struct rist_peer *peer) {
   if ( weakSelf -> clientList.find(peer) == weakSelf -> clientList.end() ) {
     LOGGER(true, LOGG_ERROR, "RISTNetReceiver::clientDisconnect unknown peer");
   } else {
-    weakSelf->mClientListMtx.lock();
-    weakSelf->clientList.erase(weakSelf->clientList.find(peer)->first);
-    weakSelf->mClientListMtx.unlock();
+    weakSelf -> mClientListMtx.lock();
+    weakSelf -> clientList.erase(weakSelf->clientList.find(peer)->first);
+    weakSelf -> mClientListMtx.unlock();
   }
 }
 
@@ -213,7 +212,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::tuple<std::string, std::stri
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
-// RISTNetSender  --  CLIENT
+// RISTNetSender  --  SENDER
 //
 //
 //---------------------------------------------------------------------------------------------------------------------
@@ -251,7 +250,6 @@ void RISTNetSender::receiveData(void *arg, struct rist_peer *peer, const void *b
   } else {
     LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented");
   }
-
 }
 
 int RISTNetSender::clientConnect(void *arg, char* connecting_ip, uint16_t connecting_port, char* local_ip, uint16_t local_port, struct rist_peer *peer) {
@@ -363,17 +361,12 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
     mRistPeerConfig.bufferbloat_hard_limit = peerConfig.bufferbloat_hard_limit;
 
     struct rist_peer *peer;
-    mPeerListMtx.lock();
-    mRistPeerList.push_back(peer);
-    status = rist_client_add_peer(mRistSender, &mRistPeerConfig, &mRistPeerList.back());
-    mPeerListMtx.unlock();
+    status = rist_client_add_peer(mRistSender, &mRistPeerConfig, &peer);
     if (status) {
       LOGGER(true, LOGG_ERROR, "rist_client_add_peer fail.");
-      //Implement garbage-collect
+      //TODO Implement garbage-collect
       return false;
     }
-
-
   }
 
   status = rist_client_set_keepalive_timeout(mRistSender, keepAlive);
@@ -399,7 +392,6 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
     LOGGER(true, LOGG_ERROR, "rist_client_start fail.");
     return false;
   }
-
   return true;
 }
 

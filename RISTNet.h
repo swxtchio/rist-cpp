@@ -99,8 +99,6 @@ private:
 
   rist_client *mRistSender = nullptr;;
   rist_peer_config mRistPeerConfig;
-  std::mutex mPeerListMtx; //Fixme TODO?
-  std::vector<struct rist_peer*> mRistPeerList = {};
 
   std::mutex mClientListMtx;
   std::map<struct rist_peer*, std::shared_ptr<NetworkConnection>> clientList = {};
