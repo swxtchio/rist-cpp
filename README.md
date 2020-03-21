@@ -63,7 +63,7 @@ interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.
 //Receiver configuration (please see librist for details)
 struct rist_peer_config myReceiverPeer;
 myReceiverPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
-myReceiverPeer.recovery_maxbitrate = 100;
+myReceiverPeer.recovery_maxbitrate = 100000;
 myReceiverPeer.recovery_maxbitrate_return = 0;
 myReceiverPeer.recovery_length_min = 1000;
 myReceiverPeer.recovery_length_max = 1000;
@@ -96,7 +96,7 @@ serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("1
 
 struct rist_peer_config mySendPeer = {0};
 mySendPeer.recovery_mode = RIST_RECOVERY_MODE_TIME;
-mySendPeer.recovery_maxbitrate = 100;
+mySendPeer.recovery_maxbitrate = 100000;
 mySendPeer.recovery_maxbitrate_return = 0;
 mySendPeer.recovery_length_min = 1000;
 mySendPeer.recovery_length_max = 1000;
