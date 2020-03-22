@@ -8,26 +8,26 @@
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
-// Global private methods
+// Network tools
 //
 //
 //---------------------------------------------------------------------------------------------------------------------
 
-static bool ristNetIsIPv4(const std::string &rStr) {
+bool RISTNetTools::isIPv4(const std::string &rStr) {
   struct sockaddr_in lsa;
   return inet_pton(AF_INET, rStr.c_str(), &(lsa.sin_addr)) != 0;
 }
 
-static bool ristNetIsIPv6(const std::string &rStr) {
+bool RISTNetTools::isIPv6(const std::string &rStr) {
   struct sockaddr_in6 lsa;
   return inet_pton(AF_INET6, rStr.c_str(), &(lsa.sin6_addr)) != 0;
 }
 
-static bool ristNetBuildRISTURL(std::string ip, std::string port, std::string &rURL, bool listen) {
+bool RISTNetTools::buildRISTURL(std::string ip, std::string port, std::string &rURL, bool listen) {
   int lIPType;
-  if (ristNetIsIPv4(ip)) {
+  if (isIPv4(ip)) {
     lIPType = AF_INET;
-  } else if (ristNetIsIPv6(ip)) {
+  } else if (isIPv6(ip)) {
     lIPType = AF_INET6;
   } else {
     LOGGER(true, LOGG_ERROR, " " << "Provided IP-Address not valid.")
@@ -216,7 +216,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::tuple<std::string, std::stri
     auto lPort = std::get<1>(rInterface);
     auto lMode = std::get<2>(rInterface);
     std::string lURL;
-    if (!ristNetBuildRISTURL(lIP, lPort, lURL, lMode)) {
+    if (!mNetTools.buildRISTURL(lIP, lPort, lURL, lMode)) {
       LOGGER(true, LOGG_ERROR, "Failed building URL.")
       return false;
     }
@@ -393,7 +393,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
     auto lPort = std::get<1>(rSinglePeer);
     auto lWeight = std::get<2>(rSinglePeer);
     auto lMode = std::get<3>(rSinglePeer);
-    if (!ristNetBuildRISTURL(lIP, lPort, lRistURL, lMode)) {
+    if (!mNetTools.buildRISTURL(lIP, lPort, lRistURL, lMode)) {
       LOGGER(true, LOGG_ERROR, "Failed building URL")
       destroySender();
       return false;

@@ -38,6 +38,22 @@ public:
   std::any mObject; //Contains your object
 };
 
+/**
+ * \class RISTNetTools
+ *
+ * \brief
+ *
+ * A helper class for the RIST C++ wrapper
+ *
+ */
+class RISTNetTools {
+public:
+  bool buildRISTURL(std::string ip, std::string port, std::string &rURL, bool listen);
+private:
+  bool isIPv4(const std::string &rStr);
+  bool isIPv6(const std::string &rStr);
+};
+
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
@@ -172,6 +188,8 @@ private:
 
   // The list of connected clients
   std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+
+  RISTNetTools mNetTools = RISTNetTools();
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -285,6 +303,8 @@ private:
 
   // The list of connected clients
   std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+
+  RISTNetTools mNetTools = RISTNetTools();
 };
 
 #endif //CPPRISTWRAPPER__RISTNET_H
