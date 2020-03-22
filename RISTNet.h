@@ -138,6 +138,9 @@ public:
 
 private:
 
+  std::shared_ptr<NetworkConnection> validateConnectionStub(std::string ipAddress, uint16_t port);
+  void dataFromClientStub(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection);
+
   // Private method receiving the data from librist C-API
   static void receiveData(void *pArg,
                           struct rist_peer *pPeer,
@@ -254,6 +257,9 @@ public:
 
 private:
 
+  std::shared_ptr<NetworkConnection> validateConnectionStub(std::string ipAddress, uint16_t port);
+  void dataFromClientStub(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection);
+
   // Private method receiving the data from librist C-API
   static void receiveData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t len);
 
@@ -278,7 +284,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> clientList;
+  std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 };
 
 #endif //CPPRISTWRAPPER__RISTNET_H
