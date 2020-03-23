@@ -11,6 +11,8 @@
 #ifndef CPPRISTWRAPPER__RISTNET_H
 #define CPPRISTWRAPPER__RISTNET_H
 
+#define CPP_WRAPPER_VERSION 20
+
 #include "librist.h"
 #include <sys/time.h>
 #include <any>
@@ -74,6 +76,16 @@ private:
 class RISTNetReceiver {
 public:
 
+  struct RISTNetReceiverSettings {
+    enum rist_profile mProfile = RIST_PROFILE_MAIN;
+    rist_peer_config mPeerConfig = {0};
+    enum rist_log_level mLogLevel = RIST_LOG_QUIET;
+    std::string mPSK = "";
+    int mSessionTimeout = 10000;
+    int mKeepAliveTimeout = 5000;
+    int mMaxjitter = 0;
+  };
+
   /// Constructor
   RISTNetReceiver();
 
@@ -91,7 +103,7 @@ public:
    * @return true on success
    */
   bool initReceiver(std::vector<std::tuple<std::string, std::string, bool>> &rInterfaceList,
-                    rist_peer_config &rPeerConfig, enum rist_log_level logLevel = RIST_LOG_QUIET);
+                    RISTNetReceiverSettings &rSettings);
 
   /**
    * @brief Map of all active connections
@@ -118,6 +130,15 @@ public:
    *
    */
   bool destroyReceiver();
+
+  /**
+   * @brief Gets the version
+   *
+   * Gets the version of the C++ librist wrapper sender and librist
+   *
+   * @return The cpp wrapper version, rist major and minor version.
+   */
+  void getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint32_t &ristMinor);
 
   /**
    * @brief Data receive callback
@@ -189,6 +210,7 @@ private:
   // The list of connected clients
   std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
+  // Internal tools used by the C++ wrapper
   RISTNetTools mNetTools = RISTNetTools();
 };
 
@@ -212,6 +234,17 @@ private:
 class RISTNetSender {
 public:
 
+  struct RISTNetSenderSettings {
+    enum rist_profile mProfile = RIST_PROFILE_MAIN;
+    rist_peer_config mPeerConfig = {0};
+    enum rist_log_level mLogLevel = RIST_LOG_QUIET;
+    std::string mPSK = "";
+    uint32_t mSessionTimeout = 10000;
+    uint32_t mKeepAliveTimeout = 5000;
+    int mMaxjitter = 0;
+    bool mCompressionEnable = false; //Leave false. Current version of librist (2.3) is corrupting the data
+   };
+
   /// Constructor
   RISTNetSender();
 
@@ -227,11 +260,7 @@ public:
    * @return true on success
    */
   bool initSender(std::vector<std::tuple<std::string, std::string, uint32_t, bool>> &rPeerList,
-                  rist_peer_config &rPeerConfig,
-                  enum rist_log_level logLevel = RIST_LOG_QUIET,
-                  enum rist_profile profile = RIST_PROFILE_MAIN,
-                  uint32_t keepAlive = 5000,
-                  uint32_t timeOut = 10000);
+                  RISTNetSenderSettings &rSettings);
 
   /**
    * @brief Map of all active connections
@@ -261,6 +290,15 @@ public:
    *
    */
   bool destroySender();
+
+  /**
+   * @brief Gets the version
+   *
+   * Gets the version of the C++ librist wrapper sender and librist
+   *
+   * @return The cpp wrapper version, rist major and minor version.
+   */
+   void getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint32_t &ristMinor);
 
   std::function<void(const uint8_t *pBuf, size_t len, std::shared_ptr<NetworkConnection> &connection)>
       networkDataCallback = nullptr;
@@ -304,6 +342,7 @@ private:
   // The list of connected clients
   std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
+  // Internal tools used by the C++ wrapper
   RISTNetTools mNetTools = RISTNetTools();
 };
 
