@@ -11,6 +11,8 @@ RISTNetReceiver myRISTNetReceiver;
 
 int packetCounter;
 
+struct rist_peer *pBim;
+
 //This is my class managed by the network connection.
 class MyClass {
 public:
@@ -67,6 +69,9 @@ void dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConne
   } else {
     std::cout << "Got " << unsigned(len) << " expexted data" << std::endl;
   }
+
+  pBim = pPeer;
+
 }
 
 void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer) {
@@ -133,7 +138,7 @@ int main() {
   //Create a sender.
   RISTNetSender myRISTNetSender;
 
-  myRISTNetReceiver.networkOOBDataCallback = std::bind(&oobDataFromReceiver, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+  myRISTNetSender.networkOOBDataCallback = std::bind(&oobDataFromReceiver, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 
   //List of ip(name)/ports, weight of the interface and listen(true) or send mode
   std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
@@ -164,14 +169,16 @@ int main() {
     myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
   }
 
-  myRISTNetReceiver.getActiveClients([](std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &clientList)
+  myRISTNetReceiver.getActiveClients([&](std::map<struct rist_peer*, std::shared_ptr<NetworkConnection>> &rClientList)
                                   {
-                                    std::cout << "The server got " << clientList.size() << " clients." << std::endl;
+                                    for (auto &rPeer: rClientList) {
+                                      std::cout << "Send OOB message" << std::endl;
+                                      myRISTNetReceiver.sendOOBData(rPeer.first, mydata.data(), mydata.size());
+                                    }
                                   }
   );
 
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
 
   std::cout << "RIST test end" << std::endl;
 

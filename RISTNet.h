@@ -125,7 +125,7 @@ public:
   void closeAllClientConnections();
 
   /**
-   * @brief Send OOB data
+   * @brief Send OOB data (Currently not working in librist)
    *
    * Sends OOB data to the specified peer
    * OOB data is encrypted (if used) but not protected for network loss
@@ -323,7 +323,7 @@ public:
   bool sendData(const uint8_t *pData, size_t lSize);
 
   /**
-  * @brief Send OOB data
+  * @brief Send OOB data (Currently not working in librist)
   *
   * Sends OOB data to the specified peer
   * OOB data is encrypted (if used) but not protected for network loss
