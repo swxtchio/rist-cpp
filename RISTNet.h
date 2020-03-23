@@ -50,7 +50,8 @@ public:
  */
 class RISTNetTools {
 public:
-  bool buildRISTURL(std::string ip, std::string port, std::string &rURL, bool listen);
+  ///Build the librist url based on name/ip, port and if it's a listen or not peer
+  bool buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen);
 private:
   bool isIPv4(const std::string &rStr);
   bool isIPv6(const std::string &rStr);
@@ -81,8 +82,8 @@ public:
     rist_peer_config mPeerConfig = {0};
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
-    int mSessionTimeout = 10000;
-    int mKeepAliveTimeout = 5000;
+    int mSessionTimeout = 0;
+    int mKeepAliveTimeout = 0;
     int mMaxjitter = 0;
   };
 
@@ -124,6 +125,19 @@ public:
   void closeAllClientConnections();
 
   /**
+   * @brief Send OOB data
+   *
+   * Sends OOB data to the specified peer
+   * OOB data is encrypted (if used) but not protected for network loss
+   *
+   * @param target peer
+   * @param pointer to the data
+   * @param length of the data
+   *
+   */
+  bool sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize);
+
+  /**
    * @brief Destroys the receiver
    *
    * Destroys the receiver and garbage collects all underlying assets.
@@ -138,7 +152,10 @@ public:
    *
    * @return The cpp wrapper version, rist major and minor version.
    */
-  void getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint32_t &ristMinor);
+  void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
+
+  //To be implemented
+  //void getInfo();
 
   /**
    * @brief Data receive callback
@@ -149,22 +166,34 @@ public:
    *
    * @param function getting data from the sender.
    */
-  std::function<void(const uint8_t *pBuf, size_t len, std::shared_ptr<NetworkConnection> &rConnection)>
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
       networkDataCallback = nullptr;
+
+  /**
+   * @brief OOB Data receive callback (__NULLABLE)
+   *
+   * When receiving data from the sender this function is called.
+   * You get a pointer to the data, the length and the NetworkConnection object containing your
+   * object if you did put a object there.
+   *
+   * @param function getting data from the sender.
+   */
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+      networkOOBDataCallback = nullptr;
 
   /**
    * @brief Validate connection callback
    *
-   * If the reciever is in listen mode and a sender connrcts this method is called
+   * If the reciever is in listen mode and a sender connects this method is called
    * Return a NetworkConnection if you want to accept this connection
    * You can attach any object to the NetworkConnection and the NetworkConnection object
    * will manage your objects lifecycle. Meaning it will release it when the connection
    * is terminated.
    *
    * @param function validating the connection.
-   * @return a NetworkConnection object.
+   * @return a NetworkConnection object or nullptr for rejecting.
    */
-  std::function<std::shared_ptr<NetworkConnection>(std::string ipAddress, uint16_t port)>
+  std::function<std::shared_ptr<NetworkConnection>(std::string lIPAddress, uint16_t lPort)>
       validateConnectionCallback = nullptr;
 
   // Delete copy and move constructors and assign operators
@@ -175,24 +204,27 @@ public:
 
 private:
 
-  std::shared_ptr<NetworkConnection> validateConnectionStub(std::string ipAddress, uint16_t port);
-  void dataFromClientStub(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection);
+  std::shared_ptr<NetworkConnection> validateConnectionStub(std::string lIPAddress, uint16_t lPort);
+  void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
   static void receiveData(void *pArg,
                           struct rist_peer *pPeer,
-                          uint64_t flowID,
+                          uint64_t lFlowID,
                           const void *pBuf,
-                          size_t len,
-                          uint16_t srcPort,
-                          uint16_t dstPort);
+                          size_t lSize,
+                          uint16_t lSrcPort,
+                          uint16_t lDstPort);
+
+  // Private method receiving OOB data from librist C-API
+  static void receiveOOBData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t lSize);
 
   // Private method called when a client connects
   static int clientConnect(void *pArg,
                            char *pConnectingIP,
-                           uint16_t connectingPort,
+                           uint16_t lConnectingPort,
                            char *pLocalIP,
-                           uint16_t localPort,
+                           uint16_t lLocalPort,
                            struct rist_peer *pPeer);
 
   // Private method called when a client disconnects
@@ -239,10 +271,9 @@ public:
     rist_peer_config mPeerConfig = {0};
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
-    uint32_t mSessionTimeout = 10000;
-    uint32_t mKeepAliveTimeout = 5000;
-    int mMaxjitter = 0;
-    bool mCompressionEnable = false; //Leave false. Current version of librist (2.3) is corrupting the data
+    uint32_t mSessionTimeout = 0;
+    uint32_t mKeepAliveTimeout = 0;
+    int mMaxJitter = 0;
    };
 
   /// Constructor
@@ -280,8 +311,29 @@ public:
    */
   void closeAllClientConnections();
 
+  /**
+   * @brief Send data
+   *
+   * Sends data to the connected peers
+   *
+   * @param pointer to the data
+   * @param length of the data
+   *
+   */
+  bool sendData(const uint8_t *pData, size_t lSize);
 
-  bool sendData(const uint8_t *pData, size_t size);
+  /**
+  * @brief Send OOB data
+  *
+  * Sends OOB data to the specified peer
+  * OOB data is encrypted (if used) but not protected for network loss
+  *
+  * @param target peer
+  * @param pointer to the data
+  * @param length of the data
+  *
+  */
+  bool sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize);
 
   /**
    * @brief Destroys the sender
@@ -298,11 +350,36 @@ public:
    *
    * @return The cpp wrapper version, rist major and minor version.
    */
-   void getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint32_t &ristMinor);
+   void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
-  std::function<void(const uint8_t *pBuf, size_t len, std::shared_ptr<NetworkConnection> &connection)>
-      networkDataCallback = nullptr;
-  std::function<std::shared_ptr<NetworkConnection>(std::string ipAddress, uint16_t port)>
+  //To be implemented
+  //void getInfo();
+
+  /**
+   * @brief OOB Data receive callback (__NULLABLE)
+   *
+   * When receiving data from the sender this function is called.
+   * You get a pointer to the data, the length and the NetworkConnection object containing your
+   * object if you did put a object there.
+   *
+   * @param function getting data from the sender.
+   */
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+      networkOOBDataCallback = nullptr;
+
+  /**
+   * @brief Validate connection callback
+   *
+   * If the sender is in listen mode and a receiver connects this method is called
+   * Return a NetworkConnection if you want to accept this connection
+   * You can attach any object to the NetworkConnection and the NetworkConnection object
+   * will manage your objects lifecycle. Meaning it will release it when the connection
+   * is terminated.
+   *
+   * @param function validating the connection.
+   * @return a NetworkConnection object or nullptr for rejecting.
+   */
+  std::function<std::shared_ptr<NetworkConnection>(std::string lIPAddress, uint16_t lPort)>
       validateConnectionCallback = nullptr;
 
   // Delete copy and move constructors and assign operators
@@ -314,17 +391,17 @@ public:
 private:
 
   std::shared_ptr<NetworkConnection> validateConnectionStub(std::string ipAddress, uint16_t port);
-  void dataFromClientStub(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection);
+  void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
-  // Private method receiving the data from librist C-API
-  static void receiveData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t len);
+  // Private method receiving OOB data from librist C-API
+  static void receiveOOBData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t lSize);
 
   // Private method called when a client connects
   static int clientConnect(void *pArg,
                            char *pConnectingIP,
-                           uint16_t connectingPort,
+                           uint16_t lConnectingPort,
                            char *pLocalIP,
-                           uint16_t localPort,
+                           uint16_t lLocalPort,
                            struct rist_peer *pPeer);
 
   // Private method called when a client disconnects

@@ -23,20 +23,20 @@ bool RISTNetTools::isIPv6(const std::string &rStr) {
   return inet_pton(AF_INET6, rStr.c_str(), &(lsa.sin6_addr)) != 0;
 }
 
-bool RISTNetTools::buildRISTURL(std::string ip, std::string port, std::string &rURL, bool listen) {
+bool RISTNetTools::buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen) {
   int lIPType;
-  if (isIPv4(ip)) {
+  if (isIPv4(lIP)) {
     lIPType = AF_INET;
-  } else if (isIPv6(ip)) {
+  } else if (isIPv6(lIP)) {
     lIPType = AF_INET6;
   } else {
     LOGGER(true, LOGG_ERROR, " " << "Provided IP-Address not valid.")
     return false;
   }
-  int lPort = 0;
-  std::stringstream lPortNum(port);
-  lPortNum >> lPort;
-  if (lPort < 1 || lPort > INT16_MAX) {
+  int lPortNum = 0;
+  std::stringstream lPortNumStr(lPort);
+  lPortNumStr >> lPortNum;
+  if (lPortNum < 1 || lPortNum > INT16_MAX) {
     LOGGER(true, LOGG_ERROR, " " << "Provided Port number not valid.")
     return false;
   }
@@ -46,13 +46,13 @@ bool RISTNetTools::buildRISTURL(std::string ip, std::string port, std::string &r
   } else {
     lRistURL += "rist6://";
   }
-  if (listen) {
+  if (lListen) {
     lRistURL += "@";
   }
   if (lIPType == AF_INET) {
-    lRistURL += ip + ":" + port;
+    lRistURL += lIP + ":" + lPort;
   } else {
-    lRistURL += "[" + ip + "]:" + port;
+    lRistURL += "[" + lIP + "]:" + lPort;
   }
   rURL = lRistURL;
   return true;
@@ -88,16 +88,16 @@ RISTNetReceiver::~RISTNetReceiver() {
 //---------------------------------------------------------------------------------------------------------------------
 
 
-std::shared_ptr<NetworkConnection> RISTNetReceiver::validateConnectionStub(std::string ipAddress, uint16_t port) {
-  LOGGER(true, LOGG_ERROR, "validateConnectionCallback not implemented. Will not accept connection from: " << ipAddress << ":" << unsigned(port))
+std::shared_ptr<NetworkConnection> RISTNetReceiver::validateConnectionStub(std::string lIPAddress, uint16_t lPort) {
+  LOGGER(true, LOGG_ERROR, "validateConnectionCallback not implemented. Will not accept connection from: " << lIPAddress << ":" << unsigned(lPort))
   return nullptr;
 }
 
-void RISTNetReceiver::dataFromClientStub(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection) {
+void RISTNetReceiver::dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection) {
   LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented. Data is lost")
 }
 
-void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t flow_id, const void *pBuf, size_t len, uint16_t src_port, uint16_t dst_port) {
+void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t lFlowID, const void *pBuf, size_t lSize, uint16_t lSrcPort, uint16_t lDstPort) {
   RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
   lWeakSelf -> mClientListMtx.lock();
   auto netObj = lWeakSelf -> mClientList.find(pPeer);
@@ -105,7 +105,7 @@ void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t 
   {
     auto netCon = netObj -> second;
     lWeakSelf -> mClientListMtx.unlock();
-    lWeakSelf -> networkDataCallback((const uint8_t *) pBuf, len, netCon);
+    lWeakSelf -> networkDataCallback((const uint8_t *) pBuf, lSize, netCon, pPeer);
     return;
   } else {
     LOGGER(true, LOGG_ERROR, "receiveData mClientList <-> peer mismatch.")
@@ -113,9 +113,25 @@ void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t 
   lWeakSelf -> mClientListMtx.unlock();
 }
 
-int RISTNetReceiver::clientConnect(void *pArg, char* pConnectingIP, uint16_t connectingPort, char* pLocalIP, uint16_t localPort, struct rist_peer *pPeer) {
+void RISTNetReceiver::receiveOOBData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t lSize) {
   RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
-  auto lNetObj = lWeakSelf -> validateConnectionCallback(std::string(pConnectingIP), connectingPort);
+  if (lWeakSelf -> networkOOBDataCallback) {  //This is a optional callback
+    lWeakSelf->mClientListMtx.lock();
+    auto netObj = lWeakSelf->mClientList.find(pPeer);
+    if (netObj != lWeakSelf->mClientList.end()) {
+      auto netCon = netObj->second;
+      lWeakSelf->mClientListMtx.unlock();
+      lWeakSelf->networkOOBDataCallback((const uint8_t *) pBuffer, lSize, netCon, pPeer);
+      return;
+    }
+    lWeakSelf->mClientListMtx.unlock();
+  }
+}
+
+
+int RISTNetReceiver::clientConnect(void *pArg, char *pConnectingIP, uint16_t lConnectingPort, char *pLocalIP, uint16_t lLocalPort, struct rist_peer *pPeer) {
+  RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
+  auto lNetObj = lWeakSelf -> validateConnectionCallback(std::string(pConnectingIP), lConnectingPort);
   if (lNetObj) {
     lWeakSelf -> mClientListMtx.lock();
     lWeakSelf -> mClientList[pPeer] = lNetObj;
@@ -142,10 +158,10 @@ void RISTNetReceiver::clientDisconnect(void *pArg, struct rist_peer *pPeer) {
 // RISTNetReceiver  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
 
-void RISTNetReceiver::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> function) {
+void RISTNetReceiver::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
   mClientListMtx.lock();
-  if (function) {
-    function(mClientList);
+  if (lFunction) {
+    lFunction(mClientList);
   }
   mClientListMtx.unlock();
 }
@@ -269,6 +285,13 @@ bool RISTNetReceiver::initReceiver(std::vector<std::tuple<std::string, std::stri
     }
   }
 
+  lStatus = rist_server_oob_enable(mRistReceiver, receiveOOBData, this);
+  if (lStatus) {
+    LOGGER(true, LOGG_ERROR, "rist_server_oob_enable fail.")
+    destroyReceiver();
+    return false;
+  }
+
   lStatus = rist_server_start(mRistReceiver, receiveData, this);
   if (lStatus) {
     LOGGER(true, LOGG_ERROR, "rist_server_init fail.")
@@ -278,10 +301,24 @@ bool RISTNetReceiver::initReceiver(std::vector<std::tuple<std::string, std::stri
   return true;
 }
 
-void RISTNetReceiver::getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint32_t &ristMinor) {
-  cppWrapper = CPP_WRAPPER_VERSION;
-  ristMajor = RIST_PROTOCOL_VERSION;
-  ristMinor = RIST_SUBVERSION;
+bool RISTNetReceiver::sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize) {
+  if (!mRistReceiver) {
+    LOGGER(true, LOGG_ERROR, "RISTNetReceiver not initialised.")
+    return false;
+  }
+  int lStatus = rist_server_write_oob(mRistReceiver, pPeer, pData, lSize);
+  if (lStatus) {
+    LOGGER(true, LOGG_ERROR, "rist_server_write_oob failed.")
+    destroyReceiver();
+    return false;
+  }
+  return true;
+}
+
+void RISTNetReceiver::getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor) {
+  rCppWrapper = CPP_WRAPPER_VERSION;
+  rRistMajor = RIST_PROTOCOL_VERSION;
+  rRistMinor = RIST_SUBVERSION;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -294,7 +331,6 @@ void RISTNetReceiver::getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint
 
 RISTNetSender::RISTNetSender() {
   validateConnectionCallback = std::bind(&RISTNetSender::validateConnectionStub, this, std::placeholders::_1, std::placeholders::_2);
-  networkDataCallback = std::bind(&RISTNetSender::dataFromClientStub, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
   LOGGER(false, LOGG_NOTIFY, "RISTNetSender constructed")
 }
 
@@ -317,27 +353,24 @@ std::shared_ptr<NetworkConnection> RISTNetSender::validateConnectionStub(std::st
   return 0;
 }
 
-void RISTNetSender::dataFromClientStub(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection) {
-  LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented. Data is lost")
-}
-
-void RISTNetSender::receiveData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t len) {
+void RISTNetSender::receiveOOBData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t lSize) {
   RISTNetSender *lWeakSelf = (RISTNetSender *) pArg;
-  lWeakSelf -> mClientListMtx.lock();
-  auto netObj = lWeakSelf -> mClientList.find(pPeer);
-  if (netObj != lWeakSelf -> mClientList.end())
-  {
-    auto netCon = netObj -> second;
-    lWeakSelf -> mClientListMtx.unlock();
-    lWeakSelf -> networkDataCallback((const uint8_t *) pBuffer, len, netCon);
-    return;
+  if (lWeakSelf -> networkOOBDataCallback) {  //This is a optional callback
+    lWeakSelf->mClientListMtx.lock();
+    auto netObj = lWeakSelf->mClientList.find(pPeer);
+    if (netObj != lWeakSelf->mClientList.end()) {
+      auto netCon = netObj->second;
+      lWeakSelf->mClientListMtx.unlock();
+      lWeakSelf->networkOOBDataCallback((const uint8_t *) pBuffer, lSize, netCon, pPeer);
+      return;
+    }
+    lWeakSelf->mClientListMtx.unlock();
   }
-  lWeakSelf -> mClientListMtx.unlock();
 }
 
-int RISTNetSender::clientConnect(void *pArg, char* pConnectingIP, uint16_t connectingPort, char* pLocalIP, uint16_t localPort, struct rist_peer *pPeer) {
+int RISTNetSender::clientConnect(void *pArg, char *pConnectingIP, uint16_t lConnectingPort, char *pLocalIP, uint16_t lLocalPort, struct rist_peer *pPeer) {
   RISTNetSender *lWeakSelf = (RISTNetSender *) pArg;
-  auto lNetObj = lWeakSelf -> validateConnectionCallback(std::string(pConnectingIP), connectingPort);
+  auto lNetObj = lWeakSelf -> validateConnectionCallback(std::string(pConnectingIP), lConnectingPort);
   if (lNetObj) {
     lWeakSelf -> mClientListMtx.lock();
     lWeakSelf -> mClientList[pPeer] = lNetObj;
@@ -364,10 +397,10 @@ void RISTNetSender::clientDisconnect(void *pArg, struct rist_peer *pPeer) {
 // RISTNetSender  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
 
-void RISTNetSender::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> function) {
+void RISTNetSender::getActiveClients(std::function<void(std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
   mClientListMtx.lock();
-  if (function) {
-    function(mClientList);
+  if (lFunction) {
+    lFunction(mClientList);
   }
   mClientListMtx.unlock();
 }
@@ -494,8 +527,8 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
     }
   }
 
-  if (rSettings.mMaxjitter) {
-    lStatus = rist_client_set_max_jitter(mRistSender, rSettings.mMaxjitter);
+  if (rSettings.mMaxJitter) {
+    lStatus = rist_client_set_max_jitter(mRistSender, rSettings.mMaxJitter);
     if (lStatus) {
       LOGGER(true, LOGG_ERROR, "rist_client_set_max_jitter fail.")
       destroySender();
@@ -503,16 +536,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
     }
   }
 
-  if (rSettings.mCompressionEnable) {
-    lStatus = rist_client_compress_enable(mRistSender, 1);
-    if (lStatus) {
-      LOGGER(true, LOGG_ERROR, "rist_client_compress_enable fail.")
-      destroySender();
-      return false;
-    }
-  }
-
-  lStatus = rist_client_oob_enable(mRistSender, receiveData, this);
+  lStatus = rist_client_oob_enable(mRistSender, receiveOOBData, this);
   if (lStatus) {
     LOGGER(true, LOGG_ERROR, "rist_client_oob_enable fail.")
     destroySender();
@@ -528,12 +552,12 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
   return true;
 }
 
-bool RISTNetSender::sendData(const uint8_t *pData, size_t size) {
+bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize) {
   if (!mRistSender) {
     LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
     return false;
   }
-  int lStatus = rist_client_write(mRistSender,pData,size,0,0);
+  int lStatus = rist_client_write(mRistSender,pData,lSize,0,0);
   if (lStatus) {
     LOGGER(true, LOGG_ERROR, "rist_client_write failed.")
     destroySender();
@@ -542,8 +566,22 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t size) {
   return true;
 }
 
-void RISTNetSender::getVersion(uint32_t &cppWrapper, uint32_t &ristMajor, uint32_t &ristMinor) {
-  cppWrapper = CPP_WRAPPER_VERSION;
-  ristMajor = RIST_PROTOCOL_VERSION;
-  ristMinor = RIST_SUBVERSION;
+bool RISTNetSender::sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize) {
+  if (!mRistSender) {
+    LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
+    return false;
+  }
+  int lStatus = rist_client_write_oob(mRistSender, pPeer, pData, lSize);
+  if (lStatus) {
+    LOGGER(true, LOGG_ERROR, "rist_client_write_oob failed.")
+    destroySender();
+    return false;
+  }
+  return true;
+}
+
+void RISTNetSender::getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor) {
+  rCppWrapper = CPP_WRAPPER_VERSION;
+  rRistMajor = RIST_PROTOCOL_VERSION;
+  rRistMinor = RIST_SUBVERSION;
 }

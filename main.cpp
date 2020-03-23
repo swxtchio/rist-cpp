@@ -40,12 +40,12 @@ std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uin
   // If the network connection is dropped the destructor in your class is called as long
   // as you do not also hold a reference to that pointer since it's shared.
 
-  auto a1 = std::make_shared<NetworkConnection>(); // Create the network connection
-  a1->mObject = std::make_shared<MyClass>(); // Attach your object.
-  return a1;
+  auto netConn = std::make_shared<NetworkConnection>(); // Create the network connection
+  netConn->mObject = std::make_shared<MyClass>(); // Attach your object.
+  return netConn;
 }
 
-void dataFromClient(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection) {
+void dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer) {
 
   //Get back your class like this ->
   if (connection) {
@@ -69,23 +69,26 @@ void dataFromClient(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConne
   }
 }
 
+void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer) {
+  std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
+}
+
 int main() {
 
   uint32_t cppWrapperVersion;
   uint32_t ristMajor;
   uint32_t ristMinor;
   myRISTNetReceiver.getVersion(cppWrapperVersion, ristMajor, ristMinor);
-  std::cout << "cppRISTWrapper version: " << unsigned(cppWrapperVersion) << "librist version: " << unsigned(ristMajor) << "." << unsigned(ristMinor) << std::endl;
+  std::cout << "cppRISTWrapper version: " << unsigned(cppWrapperVersion) << " librist version: " << unsigned(ristMajor) << "." << unsigned(ristMinor) << std::endl;
 
   packetCounter = 0;
-
 
   //validate the connecting client
   myRISTNetReceiver.validateConnectionCallback =
       std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
   //receive data from the client
   myRISTNetReceiver.networkDataCallback =
-      std::bind(&dataFromClient, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+      std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 
   //---------------------
   //
@@ -130,6 +133,8 @@ int main() {
   //Create a sender.
   RISTNetSender myRISTNetSender;
 
+  myRISTNetReceiver.networkOOBDataCallback = std::bind(&oobDataFromReceiver, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+
   //List of ip(name)/ports, weight of the interface and listen(true) or send mode
   std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
   serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("127.0.0.1", "8000", 5, false));
@@ -149,7 +154,6 @@ int main() {
 
   mySendConfiguration.mLogLevel = RIST_LOG_WARN;
   //mySendConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
-
   myRISTNetSender.initSender(serverAdresses, mySendConfiguration);
 
   std::vector<uint8_t> mydata(1000);
@@ -159,6 +163,15 @@ int main() {
     std::cout << "Send packet" << std::endl;
     myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
   }
+
+  myRISTNetReceiver.getActiveClients([](std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &clientList)
+                                  {
+                                    std::cout << "The server got " << clientList.size() << " clients." << std::endl;
+                                  }
+  );
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
 
   std::cout << "RIST test end" << std::endl;
 
