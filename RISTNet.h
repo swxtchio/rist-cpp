@@ -117,6 +117,15 @@ public:
                                                     std::shared_ptr<NetworkConnection>> &)> function);
 
   /**
+   * @brief Close a client connection
+   *
+   * Closes a client connection.
+   *
+   */
+  bool closeClientConnection(struct rist_peer *);
+
+
+  /**
    * @brief Close all active connections
    *
    * Closes all active connections.
@@ -302,6 +311,14 @@ public:
    */
   void getActiveClients(std::function<void(std::map<struct rist_peer *,
                                                     std::shared_ptr<NetworkConnection>> &)> function);
+
+  /**
+   * @brief Close a client connection
+   *
+   * Closes a client connection.
+   *
+   */
+  bool closeClientConnection(struct rist_peer *);
 
   /**
    * @brief Close all active connections

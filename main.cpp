@@ -47,7 +47,7 @@ std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uin
   return netConn;
 }
 
-void dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer) {
+void dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer, uint16_t connectionID) {
 
   //Get back your class like this ->
   if (connection) {
@@ -67,7 +67,7 @@ void dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConne
     std::cout << "Did not receive the correct data" << std::endl;
     packetCounter++;
   } else {
-    std::cout << "Got " << unsigned(len) << " expexted data" << std::endl;
+    std::cout << "Got " << unsigned(len) << " expexted data from connection id: " << unsigned(connectionID) << std::endl;
   }
 
   pBim = pPeer;
@@ -93,7 +93,7 @@ int main() {
       std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
   //receive data from the client
   myRISTNetReceiver.networkDataCallback =
-      std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+      std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
 
   //---------------------
   //
@@ -167,7 +167,7 @@ int main() {
   while (packetCounter++ < 10) {
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     std::cout << "Send packet" << std::endl;
-    myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
+    myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size(), 52);
   }
 
   myRISTNetReceiver.getActiveClients([&](std::map<struct rist_peer*, std::shared_ptr<NetworkConnection>> &rClientList)

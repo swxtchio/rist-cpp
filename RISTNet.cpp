@@ -166,6 +166,25 @@ void RISTNetReceiver::getActiveClients(std::function<void(std::map<struct rist_p
   mClientListMtx.unlock();
 }
 
+bool RISTNetReceiver::closeClientConnection(struct rist_peer * lPeer) {
+  mClientListMtx.lock();
+  auto netObj = mClientList.find(lPeer);
+  if (netObj == mClientList.end())
+  {
+    LOGGER(true, LOGG_ERROR, "Could not find peer")
+    mClientListMtx.unlock();
+    return false;
+  }
+  mClientList.erase(lPeer);
+  mClientListMtx.unlock();
+  int lStatus = rist_server_disconnect_peer(mRistReceiver, lPeer);
+  if (lStatus) {
+    LOGGER(true, LOGG_ERROR, "rist_server_disconnect_client failed: ")
+    return false;
+  }
+  return true;
+}
+
 void RISTNetReceiver::closeAllClientConnections() {
   mClientListMtx.lock();
   for (auto &rPeer: mClientList) {
@@ -403,6 +422,25 @@ void RISTNetSender::getActiveClients(std::function<void(std::map<struct rist_pee
     lFunction(mClientList);
   }
   mClientListMtx.unlock();
+}
+
+bool RISTNetSender::closeClientConnection(struct rist_peer * lPeer) {
+  mClientListMtx.lock();
+  auto netObj = mClientList.find(lPeer);
+  if (netObj == mClientList.end())
+  {
+    LOGGER(true, LOGG_ERROR, "Could not find peer")
+    mClientListMtx.unlock();
+    return false;
+  }
+  mClientList.erase(lPeer);
+  mClientListMtx.unlock();
+  int lStatus = rist_client_remove_peer(mRistSender, lPeer);
+  if (lStatus) {
+    LOGGER(true, LOGG_ERROR, "rist_client_remove_peer failed: ")
+    return false;
+  }
+  return true;
 }
 
 void RISTNetSender::closeAllClientConnections() {
