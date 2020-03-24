@@ -106,6 +106,7 @@ int main() {
   interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "8000", true));
   interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "9000", true));
 
+  //Populate the settings
   RISTNetReceiver::RISTNetReceiverSettings myReceiveConfiguration;
   myReceiveConfiguration.mPeerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
   myReceiveConfiguration.mPeerConfig.recovery_maxbitrate = 100000;
