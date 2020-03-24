@@ -97,7 +97,7 @@ void RISTNetReceiver::dataFromClientStub(const uint8_t *pBuf, size_t lSize, std:
   LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented. Data is lost")
 }
 
-void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t lFlowID, const void *pBuf, size_t lSize, uint16_t lSrcPort, uint16_t lDstPort) {
+void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t lFlowID, const void *pBuf, size_t lSize, uint16_t lConnectionID, uint16_t lDstPort) {
   RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
   lWeakSelf -> mClientListMtx.lock();
   auto netObj = lWeakSelf -> mClientList.find(pPeer);
@@ -105,10 +105,10 @@ void RISTNetReceiver::receiveData(void *pArg, struct rist_peer *pPeer, uint64_t 
   {
     auto netCon = netObj -> second;
     lWeakSelf -> mClientListMtx.unlock();
-    lWeakSelf -> networkDataCallback((const uint8_t *) pBuf, lSize, netCon, pPeer);
+    lWeakSelf -> networkDataCallback((const uint8_t *) pBuf, lSize, netCon, pPeer, lConnectionID);
     return;
   } else {
-    LOGGER(true, LOGG_ERROR, "receiveData mClientList <-> peer mismatch.")
+    LOGGER(true, LOGG_ERROR, "receivesendDataData mClientList <-> peer mismatch.")
   }
   lWeakSelf -> mClientListMtx.unlock();
 }
@@ -552,12 +552,12 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string, std::string, 
   return true;
 }
 
-bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize) {
+bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConnectionID) {
   if (!mRistSender) {
     LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
     return false;
   }
-  int lStatus = rist_client_write(mRistSender,pData,lSize,0,0);
+  int lStatus = rist_client_write(mRistSender,pData,lSize, lConnectionID,0);
   if (lStatus) {
     LOGGER(true, LOGG_ERROR, "rist_client_write failed.")
     destroySender();

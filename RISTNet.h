@@ -162,11 +162,11 @@ public:
    *
    * When receiving data from the sender this function is called.
    * You get a pointer to the data, the length and the NetworkConnection object containing your
-   * object if you did put a object there.
+   * object if you did put a object there. The sender can also put a optional uint16_t value (not 0) associated with the data
    *
    * @param function getting data from the sender.
    */
-  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer, uint16_t lConnectionID)>
       networkDataCallback = nullptr;
 
   /**
@@ -318,9 +318,10 @@ public:
    *
    * @param pointer to the data
    * @param length of the data
+   * @param a optional uint16_t value sent to the receiver
    *
    */
-  bool sendData(const uint8_t *pData, size_t lSize);
+  bool sendData(const uint8_t *pData, size_t lSize, uint16_t lConnectionID=0);
 
   /**
   * @brief Send OOB data (Currently not working in librist)
