@@ -9,6 +9,9 @@
 //Create the receiver
 RISTNetReceiver myRISTNetReceiver;
 
+//Helper building RIST URL's
+RISTNetTools myRISTNetTools;
+
 int packetCounter;
 
 struct rist_peer *pBim;
@@ -16,173 +19,163 @@ struct rist_peer *pBim;
 //This is my class managed by the network connection.
 class MyClass {
 public:
-  MyClass() {
-    someVariable = 10;
-    std::cout << "My class is now created and some variable is containing the value: " << unsigned(someVariable)
-              << std::endl;
-  };
-  virtual ~MyClass() {
-    std::cout << "My class is now destroyed and some variable is containing the value: " << unsigned(someVariable)
-              << std::endl;
-  };
-  int someVariable = 0;
+    MyClass() {
+        someVariable = 10;
+        std::cout << "My class is now created and some variable is containing the value: " << unsigned(someVariable)
+                  << std::endl;
+    };
+
+    virtual ~MyClass() {
+        std::cout << "My class is now destroyed and some variable is containing the value: " << unsigned(someVariable)
+                  << std::endl;
+    };
+    int someVariable = 0;
 };
 
 //Return a connection object. (Return nullptr if you don't want to connect to that client)
 std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uint16_t port) {
-  std::cout << "Connecting IP: " << ipAddress << ":" << unsigned(port) << std::endl;
+    std::cout << "Connecting IP: " << ipAddress << ":" << unsigned(port) << std::endl;
 
-  //Do we want to allow this connection?
-  //Do we have enough resources to accept this connection...
+    //Do we want to allow this connection?
+    //Do we have enough resources to accept this connection...
 
-  // if not then -> return nullptr;
-  // else return a ptr to a NetworkConnection.
-  // this NetworkConnection may contain a pointer to any C++ object you provide.
-  // That object ptr will be passed to you when the client communicates with you.
-  // If the network connection is dropped the destructor in your class is called as long
-  // as you do not also hold a reference to that pointer since it's shared.
+    // if not then -> return nullptr;
+    // else return a ptr to a NetworkConnection.
+    // this NetworkConnection may contain a pointer to any C++ object you provide.
+    // That object ptr will be passed to you when the client communicates with you.
+    // If the network connection is dropped the destructor in your class is called as long
+    // as you do not also hold a reference to that pointer since it's shared.
 
-  auto netConn = std::make_shared<NetworkConnection>(); // Create the network connection
-  netConn->mObject = std::make_shared<MyClass>(); // Attach your object.
-  return netConn;
+    auto netConn = std::make_shared<NetworkConnection>(); // Create the network connection
+    netConn->mObject = std::make_shared<MyClass>(); // Attach your object.
+    return netConn;
 }
 
-void dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer, uint16_t connectionID) {
-
-  //Get back your class like this ->
-  if (connection) {
-    auto v = std::any_cast<std::shared_ptr<MyClass> &>(connection->mObject);
-    v->someVariable++;
-  }
-
-  //Check the vector integrity
-  bool testFail = false;
-  for (int x = 0; x < len; x++) {
-    if (buf[x] != (x & 0xff)) {
-      testFail = true;
+void
+dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer,
+               uint16_t connectionID) {
+    myRISTNetReceiver.closeClientConnection(pPeer);
+    //Get back your class like this ->
+    if (connection) {
+        auto v = std::any_cast<std::shared_ptr<MyClass> &>(connection->mObject);
+        v->someVariable++;
     }
-  }
 
-  if (testFail) {
-    std::cout << "Did not receive the correct data" << std::endl;
-    packetCounter++;
-  } else {
-    std::cout << "Got " << unsigned(len) << " expexted data from connection id: " << unsigned(connectionID) << std::endl;
-  }
+    //Check the vector integrity
+    bool testFail = false;
+    for (int x = 0; x < len; x++) {
+        if (buf[x] != (x & 0xff)) {
+            testFail = true;
+        }
+    }
 
-  pBim = pPeer;
+    if (testFail) {
+        std::cout << "Did not receive the correct data" << std::endl;
+        packetCounter++;
+    } else {
+        std::cout << "Got " << unsigned(len) << " expexted data from connection id: " << unsigned(connectionID)
+                  << std::endl;
+    }
+
+    pBim = pPeer;
 
 }
 
-void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer) {
-  std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
+void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection,
+                         struct rist_peer *pPeer) {
+    std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
 }
 
 int main() {
 
-  uint32_t cppWrapperVersion;
-  uint32_t ristMajor;
-  uint32_t ristMinor;
-  myRISTNetReceiver.getVersion(cppWrapperVersion, ristMajor, ristMinor);
-  std::cout << "cppRISTWrapper version: " << unsigned(cppWrapperVersion) << " librist version: " << unsigned(ristMajor) << "." << unsigned(ristMinor) << std::endl;
+    uint32_t cppWrapperVersion;
+    uint32_t ristMajor;
+    uint32_t ristMinor;
+    myRISTNetReceiver.getVersion(cppWrapperVersion, ristMajor, ristMinor);
+    std::cout << "cppRISTWrapper version: " << unsigned(cppWrapperVersion) << " librist version: "
+              << unsigned(ristMajor) << "." << unsigned(ristMinor) << std::endl;
 
-  packetCounter = 0;
+    packetCounter = 0;
 
-  //validate the connecting client
-  myRISTNetReceiver.validateConnectionCallback =
-      std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
-  //receive data from the client
-  myRISTNetReceiver.networkDataCallback =
-      std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+    //validate the connecting client
+    myRISTNetReceiver.validateConnectionCallback =
+            std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
+    //receive data from the client
+    myRISTNetReceiver.networkDataCallback =
+            std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                      std::placeholders::_4, std::placeholders::_5);
 
-  //---------------------
-  //
-  // set-up the receiver
-  //
-  //---------------------
+    //---------------------
+    //
+    // set-up the receiver
+    //
+    //---------------------
 
-  //List of ip(name)/ports and listen(true) or send mode
-  std::vector<std::tuple<std::string, std::string, bool>> interfaceListServer;
-  interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "8000", true));
-  interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "9000", true));
+    std::string lURL;
+    std::vector<std::string> interfaceListReceiver;
+    if (myRISTNetTools.buildRISTURL("0.0.0.0", "8000", lURL, true)) {
+        interfaceListReceiver.push_back(lURL);
+    }
+    if (myRISTNetTools.buildRISTURL("0.0.0.0", "9000", lURL, true)) {
+        interfaceListReceiver.push_back(lURL);
+    }
 
-  //Populate the settings
-  RISTNetReceiver::RISTNetReceiverSettings myReceiveConfiguration;
-  myReceiveConfiguration.mPeerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-  myReceiveConfiguration.mPeerConfig.recovery_maxbitrate = 100000;
-  myReceiveConfiguration.mPeerConfig.recovery_maxbitrate_return = 0;
-  myReceiveConfiguration.mPeerConfig.recovery_length_min = 1000;
-  myReceiveConfiguration.mPeerConfig.recovery_length_max = 1000;
-  myReceiveConfiguration.mPeerConfig.recover_reorder_buffer = 25;
-  myReceiveConfiguration.mPeerConfig.recovery_rtt_min = 50;
-  myReceiveConfiguration.mPeerConfig.recovery_rtt_max = 500;
-  myReceiveConfiguration.mPeerConfig.weight = 5;
-  myReceiveConfiguration.mPeerConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-  myReceiveConfiguration.mPeerConfig.bufferbloat_limit = 6;
-  myReceiveConfiguration.mPeerConfig.bufferbloat_hard_limit = 20;
+    //Populate the settings
+    RISTNetReceiver::RISTNetReceiverSettings myReceiveConfiguration;
+    myReceiveConfiguration.mLogLevel = RIST_LOG_WARN;
+    //myReceiveConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
 
-  myReceiveConfiguration.mLogLevel = RIST_LOG_WARN;
-  //myReceiveConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
+    //Initialize the receiver
+    if (!myRISTNetReceiver.initReceiver(interfaceListReceiver, myReceiveConfiguration)) {
+        std::cout << "Failed starting the server" << std::endl;
+        return EXIT_FAILURE;
+    }
 
-  //Initialize the receiver
-  if (!myRISTNetReceiver.initReceiver(interfaceListServer, myReceiveConfiguration)) {
-    std::cout << "Failed starting the server" << std::endl;
-    return EXIT_FAILURE;
-  }
+    //---------------------
+    //
+    // set-up the sender
+    //
+    //---------------------
 
-  //---------------------
-  //
-  // set-up the sender
-  //
-  //---------------------
+    //Create a sender.
+    RISTNetSender myRISTNetSender;
 
-  //Create a sender.
-  RISTNetSender myRISTNetSender;
+    myRISTNetSender.networkOOBDataCallback = std::bind(&oobDataFromReceiver, std::placeholders::_1,
+                                                       std::placeholders::_2, std::placeholders::_3,
+                                                       std::placeholders::_4);
 
-  myRISTNetSender.networkOOBDataCallback = std::bind(&oobDataFromReceiver, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    //List of ip(name)/ports, weight of the interface and listen(true) or send mode
+    std::vector<std::tuple<std::string, int>> interfaceListSender;
+    if (myRISTNetTools.buildRISTURL("127.0.0.1", "8000", lURL, false)) {
+        interfaceListSender.push_back(std::tuple<std::string, int>(lURL,5));
+    }
 
-  //List of ip(name)/ports, weight of the interface and listen(true) or send mode
-  std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
-  serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("127.0.0.1", "8000", 5, false));
+    RISTNetSender::RISTNetSenderSettings mySendConfiguration;
+    mySendConfiguration.mLogLevel = RIST_LOG_WARN;
+    //mySendConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
+    myRISTNetSender.initSender(interfaceListSender, mySendConfiguration);
 
-  RISTNetSender::RISTNetSenderSettings mySendConfiguration;
-  mySendConfiguration.mPeerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-  mySendConfiguration.mPeerConfig.recovery_maxbitrate = 100000;
-  mySendConfiguration.mPeerConfig.recovery_maxbitrate_return = 0;
-  mySendConfiguration.mPeerConfig.recovery_length_min = 1000;
-  mySendConfiguration.mPeerConfig.recovery_length_max = 1000;
-  mySendConfiguration.mPeerConfig.recover_reorder_buffer = 25;
-  mySendConfiguration.mPeerConfig.recovery_rtt_min = 50;
-  mySendConfiguration.mPeerConfig.recovery_rtt_max = 500;
-  mySendConfiguration.mPeerConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-  mySendConfiguration.mPeerConfig.bufferbloat_limit = 6;
-  mySendConfiguration.mPeerConfig.bufferbloat_hard_limit = 20;
+    std::vector<uint8_t> mydata(1000);
+    std::generate(mydata.begin(), mydata.end(), [n = 0]() mutable { return n++; });
+    while (packetCounter++ < 10) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::cout << "Send packet" << std::endl;
+        myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size(), 52);
+    }
 
-  mySendConfiguration.mLogLevel = RIST_LOG_WARN;
-  //mySendConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
-  myRISTNetSender.initSender(serverAdresses, mySendConfiguration);
+    myRISTNetReceiver.getActiveClients(
+            [&](std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &rClientList) {
+                for (auto &rPeer: rClientList) {
+                    std::cout << "Send OOB message" << std::endl;
+                    myRISTNetReceiver.sendOOBData(rPeer.first, mydata.data(), mydata.size());
+                }
+            }
+    );
 
-  std::vector<uint8_t> mydata(1000);
-  std::generate(mydata.begin(), mydata.end(), [n = 0]() mutable { return n++; });
-  while (packetCounter++ < 10) {
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    std::cout << "Send packet" << std::endl;
-    myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size(), 52);
-  }
 
-  myRISTNetReceiver.getActiveClients([&](std::map<struct rist_peer*, std::shared_ptr<NetworkConnection>> &rClientList)
-                                  {
-                                    for (auto &rPeer: rClientList) {
-                                      std::cout << "Send OOB message" << std::endl;
-                                      myRISTNetReceiver.sendOOBData(rPeer.first, mydata.data(), mydata.size());
-                                    }
-                                  }
-  );
+    std::cout << "RIST test end" << std::endl;
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-  std::cout << "RIST test end" << std::endl;
-
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 
 }

@@ -11,9 +11,10 @@
 #ifndef CPPRISTWRAPPER__RISTNET_H
 #define CPPRISTWRAPPER__RISTNET_H
 
-#define CPP_WRAPPER_VERSION 20
+#define CPP_WRAPPER_VERSION 21
 
 #include "librist.h"
+#include <string.h>
 #include <sys/time.h>
 #include <any>
 #include <tuple>
@@ -79,11 +80,29 @@ public:
 
   struct RISTNetReceiverSettings {
     enum rist_profile mProfile = RIST_PROFILE_MAIN;
-    rist_peer_config mPeerConfig = {0};
+    rist_peer_config mPeerConfig = {
+            .version = RIST_PEER_CONFIG_VERSION,
+            .virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT,
+            .recovery_mode = RIST_DEFAULT_RECOVERY_MODE,
+            .recovery_maxbitrate = RIST_DEFAULT_RECOVERY_MAXBITRATE,
+            .recovery_maxbitrate_return = RIST_DEFAULT_RECOVERY_MAXBITRATE_RETURN,
+            .recovery_length_min = RIST_DEFAULT_RECOVERY_LENGHT_MIN,
+            .recovery_length_max = RIST_DEFAULT_RECOVERY_LENGHT_MAX,
+            .recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER,
+            .recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN,
+            .recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX,
+            .weight = 5,
+            .buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE,
+            .buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT,
+            .buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT,
+            .session_timeout = 10000
+    };
+
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
+    std::string mCNAME = "";
     int mSessionTimeout = 0;
-    int mKeepAliveTimeout = 0;
+    int mKeepAliveInterval = 0;
     int mMaxjitter = 0;
   };
 
@@ -98,12 +117,11 @@ public:
    *
    * Initialize the receiver using the provided settings and parameters.
    *
-   * @param rInterfaceList is a vector if interfaces containing a map of ip/port/mode (mode true == listen)
-   * @param The peer configuration
-   * @param loglevel Level of log messages to display
+   * @param rURLList is a vector of RIST formated URL's
+   * @param The receiver settings
    * @return true on success
    */
-  bool initReceiver(std::vector<std::tuple<std::string, std::string, bool>> &rInterfaceList,
+  bool initReceiver(std::vector<std::string> &rURLList,
                     RISTNetReceiverSettings &rSettings);
 
   /**
@@ -217,30 +235,19 @@ private:
   void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
-  static void receiveData(void *pArg,
-                          struct rist_peer *pPeer,
-                          uint64_t lFlowID,
-                          const void *pBuf,
-                          size_t lSize,
-                          uint16_t lSrcPort,
-                          uint16_t lDstPort);
+  static int receiveData(void *pArg, const rist_data_block *data_block);
 
   // Private method receiving OOB data from librist C-API
-  static void receiveOOBData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t lSize);
+  static int receiveOOBData(void *pArg, const rist_oob_block *pOOB_block);
 
   // Private method called when a client connects
-  static int clientConnect(void *pArg,
-                           char *pConnectingIP,
-                           uint16_t lConnectingPort,
-                           char *pLocalIP,
-                           uint16_t lLocalPort,
-                           struct rist_peer *pPeer);
+  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, struct rist_peer *pPeer);
 
   // Private method called when a client disconnects
-  static void clientDisconnect(void *pArg, struct rist_peer *pPeer);
+  static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
 
   // The context of a RIST receiver
-  rist_server *mRistReceiver = nullptr;
+  rist_receiver *mRistReceiver = nullptr;
 
   // The configuration of the RIST receiver
   rist_peer_config mRistPeerConfig = {0};
@@ -277,11 +284,29 @@ public:
 
   struct RISTNetSenderSettings {
     enum rist_profile mProfile = RIST_PROFILE_MAIN;
-    rist_peer_config mPeerConfig = {0};
+    rist_peer_config mPeerConfig = {
+          .version = RIST_PEER_CONFIG_VERSION,
+          .virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT,
+          .recovery_mode = RIST_DEFAULT_RECOVERY_MODE,
+          .recovery_maxbitrate = RIST_DEFAULT_RECOVERY_MAXBITRATE,
+          .recovery_maxbitrate_return = RIST_DEFAULT_RECOVERY_MAXBITRATE_RETURN,
+          .recovery_length_min = RIST_DEFAULT_RECOVERY_LENGHT_MIN,
+          .recovery_length_max = RIST_DEFAULT_RECOVERY_LENGHT_MAX,
+          .recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER,
+          .recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN,
+          .recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX,
+          .weight = 5,
+          .buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE,
+          .buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT,
+          .buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT,
+          .session_timeout = 10000
+      };
+
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
-    uint32_t mSessionTimeout = 0;
-    uint32_t mKeepAliveTimeout = 0;
+    std::string mCNAME = "";
+    uint32_t mSessionTimeout = 5000;
+    uint32_t mKeepAliveInterval = 10000;
     int mMaxJitter = 0;
    };
 
@@ -296,10 +321,11 @@ public:
    *
    * Initialize the sender using the provided settings and parameters.
    *
-   * @param WIP.. is about to change
+   * @param rURLList is a vector of RIST formated URL's
+   * @param The sender settings
    * @return true on success
    */
-  bool initSender(std::vector<std::tuple<std::string, std::string, uint32_t, bool>> &rPeerList,
+  bool initSender(std::vector<std::tuple<std::string,int>> &rPeerList,
                   RISTNetSenderSettings &rSettings);
 
   /**
@@ -412,21 +438,16 @@ private:
   void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving OOB data from librist C-API
-  static void receiveOOBData(void *pArg, struct rist_peer *pPeer, const void *pBuffer, size_t lSize);
+  static int receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock);
 
   // Private method called when a client connects
-  static int clientConnect(void *pArg,
-                           char *pConnectingIP,
-                           uint16_t lConnectingPort,
-                           char *pLocalIP,
-                           uint16_t lLocalPort,
-                           struct rist_peer *pPeer);
+  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, struct rist_peer *pPeer);
 
   // Private method called when a client disconnects
-  static void clientDisconnect(void *pArg, struct rist_peer *pPeer);
+  static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
 
   // The context of a RIST sender
-  rist_client *mRistSender = nullptr;
+  rist_sender *mRistSender = nullptr;
 
   // The configuration of the RIST sender
   rist_peer_config mRistPeerConfig = {0};
