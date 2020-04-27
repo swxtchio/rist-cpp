@@ -104,9 +104,9 @@ myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
 Add this in your CMake file.
 
 ```
-#Include cppRISTWrapper
-ExternalProject_Add(project_cppristwrapp
-        GIT_REPOSITORY https://github.com/andersc/cppRISTWrapper
+#Include libristnet
+ExternalProject_Add(project_libristnet
+        GIT_REPOSITORY https://code.videolan.org/rist/rist-cpp.git
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ristwrap
         BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ristwrap
         GIT_PROGRESS 1
@@ -117,7 +117,7 @@ ExternalProject_Add(project_cppristwrapp
         )
 add_library(ristnet STATIC IMPORTED)
 set_property(TARGET ristnet PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/ristwrap/libristnet.a)
-add_dependencies(ristnet project_cppristwrapp)
+add_dependencies(ristnet project_libristnet)
 
 #Pass information about where to find headers
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ristwrap/)
