@@ -101,8 +101,8 @@ public:
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
     std::string mCNAME = "";
-    int mSessionTimeout = 0;
-    int mKeepAliveInterval = 0;
+    int mSessionTimeout = 5000;
+    int mKeepAliveInterval = 10000;
     int mMaxjitter = 0;
   };
 
@@ -192,8 +192,9 @@ public:
    * object if you did put a object there. The sender can also put a optional uint16_t value (not 0) associated with the data
    *
    * @param function getting data from the sender.
+   * @return 0 to keep the connection else -1.
    */
-  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer, uint16_t lConnectionID)>
+  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer, uint16_t lConnectionID)>
       networkDataCallback = nullptr;
 
   /**
@@ -232,7 +233,7 @@ public:
 private:
 
   std::shared_ptr<NetworkConnection> validateConnectionStub(std::string lIPAddress, uint16_t lPort);
-  void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
+  int dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
   static int receiveData(void *pArg, const rist_data_block *data_block);
@@ -258,8 +259,6 @@ private:
   // The list of connected clients
   std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
-  // Internal tools used by the C++ wrapper
-  RISTNetTools mNetTools = RISTNetTools();
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -458,8 +457,6 @@ private:
   // The list of connected clients
   std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
-  // Internal tools used by the C++ wrapper
-  RISTNetTools mNetTools = RISTNetTools();
 };
 
 #endif //CPPRISTWRAPPER__RISTNET_H

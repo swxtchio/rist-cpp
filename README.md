@@ -5,8 +5,6 @@
 
 The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating a thin C++ layer around librist.
 
-The C++ wrapper has not implemented all librist functionality at this point.
-
 
 ## Building
 
@@ -16,14 +14,14 @@ Requires cmake version >= **3.10** and **C++17**
 
 ```sh
 cmake -DCMAKE_BUILD_TYPE=Release .
-make
+cmake --build .
 ```
 
 ***Debug:***
 
 ```sh
 cmake -DCMAKE_BUILD_TYPE=Debug .
-make
+cmake --build .
 ```
 
 Output: 
@@ -32,13 +30,13 @@ Output:
 
 A static RIST C++ wrapper library 
  
-**cppRISTWrapper**
+**rist_cpp**
 
-*cppRISTWrapper* (executable) runs trough the unit tests and returns EXIT_SUCESS if all unit tests pass.
+*rist_cpp* (executable) runs trough the unit tests and returns EXIT_SUCESS if all unit tests pass.
 
 ## Usage
 
-The cppRISTWrapper > RISTNet class/library is divided into Server/Client. The Server/Client creation and configuration is detailed below.
+The rist-cpp > RISTNet class is divided into Receiver/Sender. The Receiver/Sender creation and configuration is detailed below.
 
 **Reciever:**
 
@@ -55,32 +53,23 @@ myRISTNetReceiver.validateConnectionCallback =
 myRISTNetReceiver.networkDataCallback =
       std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 
-//List of ip(name)/ports and listen(true) or send mode
-std::vector<std::tuple<std::string, std::string, bool>> interfaceListServer;
-interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "8000", true));
-interfaceListServer.push_back(std::tuple<std::string, std::string, bool>("0.0.0.0", "9000", true));
+//Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
+std::string lURL;
+std::vector<std::string> interfaceListReceiver;
+if (myRISTNetTools.buildRISTURL("0.0.0.0", "8000", lURL, true)) {
+    interfaceListReceiver.push_back(lURL);
+}
+if (myRISTNetTools.buildRISTURL("0.0.0.0", "9000", lURL, true)) {
+	interfaceListReceiver.push_back(lURL);
+}
 
-//Populate the settings (See the struct for more parameters)
+//Populate the settings
 RISTNetReceiver::RISTNetReceiverSettings myReceiveConfiguration;
-myReceiveConfiguration.mPeerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-myReceiveConfiguration.mPeerConfig.recovery_maxbitrate = 100000;
-myReceiveConfiguration.mPeerConfig.recovery_maxbitrate_return = 0;
-myReceiveConfiguration.mPeerConfig.recovery_length_min = 1000;
-myReceiveConfiguration.mPeerConfig.recovery_length_max = 1000;
-myReceiveConfiguration.mPeerConfig.recover_reorder_buffer = 25;
-myReceiveConfiguration.mPeerConfig.recovery_rtt_min = 50;
-myReceiveConfiguration.mPeerConfig.recovery_rtt_max = 500;
-myReceiveConfiguration.mPeerConfig.weight = 5;
-myReceiveConfiguration.mPeerConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-myReceiveConfiguration.mPeerConfig.bufferbloat_limit = 6;
-myReceiveConfiguration.mPeerConfig.bufferbloat_hard_limit = 20;
-
-//myReceiveConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
 
 //Initialize the receiver
-if (!myRISTNetReceiver.initReceiver(interfaceListServer, myReceiveConfiguration)) {
-  std::cout << "Failed starting the server" << std::endl;
-  return EXIT_FAILURE;
+if (!myRISTNetReceiver.initReceiver(interfaceListReceiver, myReceiveConfiguration)) {
+   std::cout << "Failed starting the server" << std::endl;
+   return EXIT_FAILURE;
 }
 
 ```
@@ -92,26 +81,16 @@ if (!myRISTNetReceiver.initReceiver(interfaceListServer, myReceiveConfiguration)
 //Create a sender.
 RISTNetSender myRISTNetSender;
 
-//List of ip(name)/ports, weight of the interface and listen(true) or send mode
-std::vector<std::tuple<std::string, std::string, uint32_t, bool>> serverAdresses;
-serverAdresses.push_back(std::tuple<std::string, std::string, uint32_t, bool>("127.0.0.1", "8000", 5, false));
+//Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
+std::string lURL;
+std::vector<std::tuple<std::string, int>> interfaceListSender;
+if (myRISTNetTools.buildRISTURL("127.0.0.1", "8000", lURL, false)) {
+    interfaceListSender.push_back(std::tuple<std::string, int>(lURL,5));
+}
 
-//Populate the settings (See the struct for more parameters)
+//Populate the settings
 RISTNetSender::RISTNetSenderSettings mySendConfiguration;
-mySendConfiguration.mPeerConfig.recovery_mode = RIST_RECOVERY_MODE_TIME;
-mySendConfiguration.mPeerConfig.recovery_maxbitrate = 100000;
-mySendConfiguration.mPeerConfig.recovery_maxbitrate_return = 0;
-mySendConfiguration.mPeerConfig.recovery_length_min = 1000;
-mySendConfiguration.mPeerConfig.recovery_length_max = 1000;
-mySendConfiguration.mPeerConfig.recover_reorder_buffer = 25;
-mySendConfiguration.mPeerConfig.recovery_rtt_min = 50;
-mySendConfiguration.mPeerConfig.recovery_rtt_max = 500;
-mySendConfiguration.mPeerConfig.bufferbloat_mode = RIST_BUFFER_BLOAT_MODE_OFF;
-mySendConfiguration.mPeerConfig.bufferbloat_limit = 6;
-mySendConfiguration.mPeerConfig.bufferbloat_hard_limit = 20;
-
-//mySendConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
-myRISTNetSender.initSender(serverAdresses, mySendConfiguration);
+myRISTNetSender.initSender(interfaceListSender, mySendConfiguration);
 
 //Send data
 myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());

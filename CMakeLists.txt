@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(cppRISTWrapper)
+project(rist-cpp)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -55,5 +55,5 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/inc)
 add_library(ristnet STATIC RISTNet.cpp)
 target_link_libraries(ristnet rist Threads::Threads)
 
-add_executable(cppRISTWrapper main.cpp)
-target_link_libraries(cppRISTWrapper ristnet Threads::Threads)
+add_executable(rist_cpp main.cpp)
+target_link_libraries(rist_cpp ristnet Threads::Threads)

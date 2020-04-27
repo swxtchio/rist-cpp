@@ -97,9 +97,10 @@ std::shared_ptr<NetworkConnection> RISTNetReceiver::validateConnectionStub(std::
     return nullptr;
 }
 
-void RISTNetReceiver::dataFromClientStub(const uint8_t *pBuf, size_t lSize,
+int RISTNetReceiver::dataFromClientStub(const uint8_t *pBuf, size_t lSize,
                                          std::shared_ptr<NetworkConnection> &rConnection) {
     LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented. Data is lost")
+    return -1;
 }
 
 int RISTNetReceiver::receiveData(void *pArg, const rist_data_block *pDataBlock) {
@@ -109,13 +110,12 @@ int RISTNetReceiver::receiveData(void *pArg, const rist_data_block *pDataBlock) 
     if (netObj != lWeakSelf->mClientList.end()) {
         auto netCon = netObj->second;
         lWeakSelf->mClientListMtx.unlock();
-        lWeakSelf->networkDataCallback((const uint8_t *) pDataBlock->payload, pDataBlock->payload_len, netCon, pDataBlock->peer, pDataBlock->flow_id);
-        return 0;
+        return lWeakSelf->networkDataCallback((const uint8_t *) pDataBlock->payload, pDataBlock->payload_len, netCon, pDataBlock->peer, pDataBlock->flow_id);
     } else {
         LOGGER(true, LOGG_ERROR, "receivesendDataData mClientList <-> peer mismatch.")
     }
     lWeakSelf->mClientListMtx.unlock();
-    return 0;
+    return -1;
 }
 
 int RISTNetReceiver::receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock) {
@@ -142,9 +142,9 @@ int RISTNetReceiver::clientConnect(void *pArg, const char* pConnectingIP, uint16
         lWeakSelf->mClientListMtx.lock();
         lWeakSelf->mClientList[pPeer] = lNetObj;
         lWeakSelf->mClientListMtx.unlock();
-        return 1; // Accept the connection
+        return 0; // Accept the connection
     }
-    return 0; // Reject the connection
+    return -1; // Reject the connection
 }
 
 int RISTNetReceiver::clientDisconnect(void *pArg, struct rist_peer *pPeer) {
@@ -266,7 +266,8 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
             strncpy((char *) &mRistPeerConfig.cname[0], rSettings.mCNAME.c_str(), 128);
         }
 
-        lStatus = rist_parse_address(rURL.c_str(), (const rist_peer_config **)&mRistPeerConfig);
+        const struct rist_peer_config* lTmp = &mRistPeerConfig;
+        lStatus = rist_parse_address(rURL.c_str(), &lTmp);
         if (lStatus)
         {
             LOGGER(true, LOGG_ERROR, "rist_parse_address fail: " << rURL)
@@ -292,7 +293,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         }
     }
 
-    lStatus = rist_receiver_oob_set(mRistReceiver, receiveOOBData, this);
+    lStatus = rist_receiver_oob_callback_set(mRistReceiver, receiveOOBData, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_oob_set fail.")
         destroyReceiver();
@@ -406,9 +407,9 @@ int RISTNetSender::clientConnect(void *pArg, const char* pConnectingIP, uint16_t
         lWeakSelf->mClientListMtx.lock();
         lWeakSelf->mClientList[pPeer] = lNetObj;
         lWeakSelf->mClientListMtx.unlock();
-        return 1; // Accept the connection
+        return 0; // Accept the connection
     }
-    return 0; // Reject the connection
+    return -1; // Reject the connection
 }
 
 int RISTNetSender::clientDisconnect(void *pArg, struct rist_peer *pPeer) {
@@ -533,7 +534,8 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
             strncpy((char *) &mRistPeerConfig.cname[0], rSettings.mCNAME.c_str(), 128);
         }
 
-        lStatus = rist_parse_address(peerURL.c_str(), (const rist_peer_config **)&mRistPeerConfig);
+        const struct rist_peer_config* lTmp = &mRistPeerConfig;
+        lStatus = rist_parse_address(peerURL.c_str(), &lTmp);
         if (lStatus)
         {
             LOGGER(true, LOGG_ERROR, "rist_parse_address fail: " << peerURL)
@@ -559,7 +561,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         }
     }
 
-    lStatus = rist_sender_oob_set(mRistSender, receiveOOBData, this);
+    lStatus = rist_sender_oob_callback_set(mRistSender, receiveOOBData, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_oob_set fail.")
         destroySender();

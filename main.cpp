@@ -14,8 +14,6 @@ RISTNetTools myRISTNetTools;
 
 int packetCounter;
 
-struct rist_peer *pBim;
-
 //This is my class managed by the network connection.
 class MyClass {
 public:
@@ -51,10 +49,9 @@ std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uin
     return netConn;
 }
 
-void
+int
 dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer,
                uint16_t connectionID) {
-    myRISTNetReceiver.closeClientConnection(pPeer);
     //Get back your class like this ->
     if (connection) {
         auto v = std::any_cast<std::shared_ptr<MyClass> &>(connection->mObject);
@@ -77,8 +74,7 @@ dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection
                   << std::endl;
     }
 
-    pBim = pPeer;
-
+    return 0; //Keep connection
 }
 
 void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection,
@@ -111,6 +107,7 @@ int main() {
     //
     //---------------------
 
+    //Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
     std::string lURL;
     std::vector<std::string> interfaceListReceiver;
     if (myRISTNetTools.buildRISTURL("0.0.0.0", "8000", lURL, true)) {
@@ -144,7 +141,7 @@ int main() {
                                                        std::placeholders::_2, std::placeholders::_3,
                                                        std::placeholders::_4);
 
-    //List of ip(name)/ports, weight of the interface and listen(true) or send mode
+    //Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
     std::vector<std::tuple<std::string, int>> interfaceListSender;
     if (myRISTNetTools.buildRISTURL("127.0.0.1", "8000", lURL, false)) {
         interfaceListSender.push_back(std::tuple<std::string, int>(lURL,5));
@@ -160,7 +157,7 @@ int main() {
     while (packetCounter++ < 10) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         std::cout << "Send packet" << std::endl;
-        myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size(), 52);
+        myRISTNetSender.sendData((const uint8_t *) mydata.data(), mydata.size());
     }
 
     myRISTNetReceiver.getActiveClients(
