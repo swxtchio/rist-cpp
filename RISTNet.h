@@ -15,7 +15,6 @@
 
 #include "librist.h"
 #include <string.h>
-#include <sys/time.h>
 #include <any>
 #include <tuple>
 #include <vector>
@@ -25,8 +24,16 @@
 #include <map>
 #include <functional>
 #include <mutex>
-#include <sys/socket.h>
+
+#ifdef WIN32
+#include <Winsock2.h>
+#define _WINSOCKAPI_
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#endif
+
+
 
  /**
   * \class NetworkConnection
@@ -79,24 +86,25 @@ class RISTNetReceiver {
 public:
 
   struct RISTNetReceiverSettings {
+      RISTNetReceiverSettings() {
+          mPeerConfig.version = RIST_PEER_CONFIG_VERSION;
+          mPeerConfig.virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT;
+          mPeerConfig.recovery_mode = RIST_DEFAULT_RECOVERY_MODE;
+          mPeerConfig.recovery_maxbitrate = RIST_DEFAULT_RECOVERY_MAXBITRATE;
+          mPeerConfig.recovery_maxbitrate_return = RIST_DEFAULT_RECOVERY_MAXBITRATE_RETURN;
+          mPeerConfig.recovery_length_min = RIST_DEFAULT_RECOVERY_LENGHT_MIN;
+          mPeerConfig.recovery_length_max = RIST_DEFAULT_RECOVERY_LENGHT_MAX;
+          mPeerConfig.recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER;
+          mPeerConfig.recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN;
+          mPeerConfig.recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX;
+          mPeerConfig.weight = 5;
+          mPeerConfig.buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE;
+          mPeerConfig.buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT;
+          mPeerConfig.buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT;
+          mPeerConfig.session_timeout = 10000;
+      }
     enum rist_profile mProfile = RIST_PROFILE_MAIN;
-    rist_peer_config mPeerConfig = {
-            .version = RIST_PEER_CONFIG_VERSION,
-            .virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT,
-            .recovery_mode = RIST_DEFAULT_RECOVERY_MODE,
-            .recovery_maxbitrate = RIST_DEFAULT_RECOVERY_MAXBITRATE,
-            .recovery_maxbitrate_return = RIST_DEFAULT_RECOVERY_MAXBITRATE_RETURN,
-            .recovery_length_min = RIST_DEFAULT_RECOVERY_LENGHT_MIN,
-            .recovery_length_max = RIST_DEFAULT_RECOVERY_LENGHT_MAX,
-            .recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER,
-            .recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN,
-            .recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX,
-            .weight = 5,
-            .buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE,
-            .buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT,
-            .buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT,
-            .session_timeout = 10000
-    };
+    rist_peer_config mPeerConfig;
 
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
@@ -282,24 +290,25 @@ class RISTNetSender {
 public:
 
   struct RISTNetSenderSettings {
-    enum rist_profile mProfile = RIST_PROFILE_MAIN;
-    rist_peer_config mPeerConfig = {
-          .version = RIST_PEER_CONFIG_VERSION,
-          .virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT,
-          .recovery_mode = RIST_DEFAULT_RECOVERY_MODE,
-          .recovery_maxbitrate = RIST_DEFAULT_RECOVERY_MAXBITRATE,
-          .recovery_maxbitrate_return = RIST_DEFAULT_RECOVERY_MAXBITRATE_RETURN,
-          .recovery_length_min = RIST_DEFAULT_RECOVERY_LENGHT_MIN,
-          .recovery_length_max = RIST_DEFAULT_RECOVERY_LENGHT_MAX,
-          .recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER,
-          .recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN,
-          .recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX,
-          .weight = 5,
-          .buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE,
-          .buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT,
-          .buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT,
-          .session_timeout = 10000
+      RISTNetSenderSettings() {
+          mPeerConfig.version = RIST_PEER_CONFIG_VERSION;
+          mPeerConfig.virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT;
+          mPeerConfig.recovery_mode = RIST_DEFAULT_RECOVERY_MODE;
+          mPeerConfig.recovery_maxbitrate = RIST_DEFAULT_RECOVERY_MAXBITRATE;
+          mPeerConfig.recovery_maxbitrate_return = RIST_DEFAULT_RECOVERY_MAXBITRATE_RETURN;
+          mPeerConfig.recovery_length_min = RIST_DEFAULT_RECOVERY_LENGHT_MIN;
+          mPeerConfig.recovery_length_max = RIST_DEFAULT_RECOVERY_LENGHT_MAX;
+          mPeerConfig.recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER;
+          mPeerConfig.recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN;
+          mPeerConfig.recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX;
+          mPeerConfig.weight = 5;
+          mPeerConfig.buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE;
+          mPeerConfig.buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT;
+          mPeerConfig.buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT;
+          mPeerConfig.session_timeout = 10000;
       };
+    enum rist_profile mProfile = RIST_PROFILE_MAIN;
+    rist_peer_config mPeerConfig;
 
     enum rist_log_level mLogLevel = RIST_LOG_QUIET;
     std::string mPSK = "";
