@@ -1,6 +1,15 @@
+
 ![librist logo](cpprist.jpg)
 
 # cppRISTWrapper
+
+
+-
+
+***(LibRIST removed CMake from the project. It's no longer possible to use this C++ wrapper)***
+
+-
+
 
 
 The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating a thin C++ layer around librist.
