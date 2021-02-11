@@ -14,6 +14,7 @@
 #define CPP_WRAPPER_VERSION 21
 
 #include "librist.h"
+#include "version.h"
 #include <string.h>
 #include <any>
 #include <tuple>
@@ -97,21 +98,23 @@ public:
           mPeerConfig.recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER;
           mPeerConfig.recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN;
           mPeerConfig.recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX;
+          mPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE; //Fixme
+          mPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES; //fixme
+          mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES; //fixme
           mPeerConfig.weight = 5;
-          mPeerConfig.buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE;
-          mPeerConfig.buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT;
-          mPeerConfig.buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT;
-          mPeerConfig.session_timeout = 10000;
+          mPeerConfig.session_timeout = RIST_DEFAULT_SESSION_TIMEOUT;
       }
-    enum rist_profile mProfile = RIST_PROFILE_MAIN;
+    rist_profile mProfile = RIST_PROFILE_MAIN;
     rist_peer_config mPeerConfig;
 
-    enum rist_log_level mLogLevel = RIST_LOG_QUIET;
+    rist_log_level mLogLevel = RIST_LOG_ERROR;
+    std::unique_ptr<rist_logging_settings> mLogSetting;
     std::string mPSK = "";
     std::string mCNAME = "";
     int mSessionTimeout = 5000;
     int mKeepAliveInterval = 10000;
     int mMaxjitter = 0;
+
   };
 
   /// Constructor
@@ -256,7 +259,7 @@ private:
   static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
 
   // The context of a RIST receiver
-  rist_receiver *mRistReceiver = nullptr;
+  rist_ctx *mRistContext = nullptr;
 
   // The configuration of the RIST receiver
   rist_peer_config mRistPeerConfig = {0};
@@ -301,16 +304,17 @@ public:
           mPeerConfig.recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER;
           mPeerConfig.recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN;
           mPeerConfig.recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX;
+          mPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE; //Fixme
+          mPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES; //fixme
+          mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES; //fixme
           mPeerConfig.weight = 5;
-          mPeerConfig.buffer_bloat_mode = RIST_DEFAULT_BUFFER_BLOAT_MODE;
-          mPeerConfig.buffer_bloat_limit = RIST_DEFAULT_BUFFER_BLOAT_LIMIT;
-          mPeerConfig.buffer_bloat_hard_limit = RIST_DEFAULT_BUFFER_BLOAT_HARD_LIMIT;
-          mPeerConfig.session_timeout = 10000;
+          mPeerConfig.session_timeout = RIST_DEFAULT_SESSION_TIMEOUT;
       };
-    enum rist_profile mProfile = RIST_PROFILE_MAIN;
+    rist_profile mProfile = RIST_PROFILE_MAIN;
     rist_peer_config mPeerConfig;
 
-    enum rist_log_level mLogLevel = RIST_LOG_QUIET;
+    rist_log_level mLogLevel = RIST_LOG_ERROR;
+    std::unique_ptr<rist_logging_settings> mLogSetting;
     std::string mPSK = "";
     std::string mCNAME = "";
     uint32_t mSessionTimeout = 5000;
@@ -455,7 +459,7 @@ private:
   static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
 
   // The context of a RIST sender
-  rist_sender *mRistSender = nullptr;
+  rist_ctx *mRistContext = nullptr;
 
   // The configuration of the RIST sender
   rist_peer_config mRistPeerConfig = {0};

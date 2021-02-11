@@ -35,9 +35,12 @@ add_dependencies(rist project_rist)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/include/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/include/librist)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/build/include/librist)
 
-add_library(ristnet STATIC RISTNet.cpp)
-target_link_libraries(ristnet rist Threads::Threads)
+file(GLOB lz4 "${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/*.c")
+link_directories(${CMAKE_SOURCE_DIR}/rist/build/subprojects/mbedtls-2.23.0)
+add_library(ristnet STATIC RISTNet.cpp ${lz4})
+target_link_libraries(ristnet rist Threads::Threads cm_mbedtls cm_mbedcrypto cm_mbedx509)
 
 add_executable(rist_cpp main.cpp)
 target_link_libraries(rist_cpp ristnet Threads::Threads)

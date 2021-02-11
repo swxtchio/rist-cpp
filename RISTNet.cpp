@@ -76,8 +76,8 @@ RISTNetReceiver::RISTNetReceiver() {
 }
 
 RISTNetReceiver::~RISTNetReceiver() {
-    if (mRistReceiver) {
-        int lStatus = rist_receiver_destroy(mRistReceiver);
+    if (mRistContext) {
+        int lStatus = rist_destroy(mRistContext);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_destroy failure")
         }
@@ -184,7 +184,7 @@ bool RISTNetReceiver::closeClientConnection(struct rist_peer *lPeer) {
     }
     mClientList.erase(lPeer);
     mClientListMtx.unlock();
-    int lStatus = rist_receiver_peer_destroy(mRistReceiver, lPeer);
+    int lStatus = rist_peer_destroy(mRistContext, lPeer);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_peer_destroy failed: ")
         return false;
@@ -196,7 +196,7 @@ void RISTNetReceiver::closeAllClientConnections() {
     mClientListMtx.lock();
     for (auto &rPeer: mClientList) {
         struct rist_peer *lPeer = rPeer.first;
-        int lStatus = rist_receiver_peer_destroy(mRistReceiver, lPeer);
+        int lStatus = rist_peer_destroy(mRistContext, lPeer);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_peer_destroy failed: ")
         }
@@ -206,9 +206,9 @@ void RISTNetReceiver::closeAllClientConnections() {
 }
 
 bool RISTNetReceiver::destroyReceiver() {
-    if (mRistReceiver) {
-        int lStatus = rist_receiver_destroy(mRistReceiver);
-        mRistReceiver = nullptr;
+    if (mRistContext) {
+        int lStatus = rist_destroy(mRistContext);
+        mRistContext = nullptr;
         mClientListMtx.lock();
         mClientList.clear();
         mClientListMtx.unlock();
@@ -231,7 +231,17 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
     }
 
     int lStatus;
-    lStatus = rist_receiver_create(&mRistReceiver, rSettings.mProfile, rSettings.mLogLevel);
+
+    // Default log settings
+    rist_logging_settings* lSettingsPtr = rSettings.mLogSetting.get();
+	lStatus = rist_logging_set(&lSettingsPtr, rSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
+    if (lStatus) {
+        LOGGER(true, LOGG_ERROR, "rist_logging_set failed.")
+        return false;
+	}
+
+
+    lStatus = rist_receiver_create(&mRistContext, rSettings.mProfile, rSettings.mLogSetting.get());
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_create fail.")
         return false;
@@ -251,9 +261,11 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         mRistPeerConfig.recovery_rtt_min = rSettings.mPeerConfig.recovery_rtt_min;
         mRistPeerConfig.recovery_rtt_max = rSettings.mPeerConfig.recovery_rtt_max;
         mRistPeerConfig.weight = 5;
-        mRistPeerConfig.buffer_bloat_mode = rSettings.mPeerConfig.buffer_bloat_mode;
-        mRistPeerConfig.buffer_bloat_limit = rSettings.mPeerConfig.buffer_bloat_limit;
-        mRistPeerConfig.buffer_bloat_hard_limit = rSettings.mPeerConfig.buffer_bloat_hard_limit;
+
+        //mRistPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE; //Fixme
+        //mRistPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES; //fixme
+        //mRistPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES; //fixme
+
         mRistPeerConfig.session_timeout = rSettings.mSessionTimeout;
         mRistPeerConfig.keepalive_interval =  rSettings.mKeepAliveInterval;
         mRistPeerConfig.key_size = keysize;
@@ -276,7 +288,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         }
 
         struct rist_peer *peer;
-        lStatus =  rist_receiver_peer_create(mRistReceiver, &peer, &mRistPeerConfig);
+        lStatus =  rist_peer_create(mRistContext, &peer, &mRistPeerConfig);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_peer_create fail: " << rURL)
             destroyReceiver();
@@ -285,7 +297,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
     }
 
     if (rSettings.mMaxjitter) {
-        lStatus = rist_receiver_jitter_max_set(mRistReceiver, rSettings.mMaxjitter);
+        lStatus = rist_jitter_max_set(mRistContext, rSettings.mMaxjitter);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_jitter_max_set fail.")
             destroyReceiver();
@@ -293,28 +305,28 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         }
     }
 
-    lStatus = rist_receiver_oob_callback_set(mRistReceiver, receiveOOBData, this);
+    lStatus = rist_oob_callback_set(mRistContext, receiveOOBData, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_oob_set fail.")
         destroyReceiver();
         return false;
     }
 
-    lStatus = rist_receiver_data_callback_set(mRistReceiver, receiveData, this);
+    lStatus = rist_receiver_data_callback_set(mRistContext, receiveData, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_data_callback_set fail.")
         destroyReceiver();
         return false;
     }
 
-    lStatus = rist_receiver_auth_handler_set(mRistReceiver, clientConnect, clientDisconnect, this);
+    lStatus = rist_auth_handler_set(mRistContext, clientConnect, clientDisconnect, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_auth_handler_set fail.")
         destroyReceiver();
         return false;
     }
 
-    lStatus = rist_receiver_start(mRistReceiver);
+    lStatus = rist_start(mRistContext);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_start fail.")
         destroyReceiver();
@@ -324,7 +336,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
 }
 
 bool RISTNetReceiver::sendOOBData(struct rist_peer *pPeer, const uint8_t *pData, size_t lSize) {
-    if (!mRistReceiver) {
+    if (!mRistContext) {
         LOGGER(true, LOGG_ERROR, "RISTNetReceiver not initialised.")
         return false;
     }
@@ -334,7 +346,7 @@ bool RISTNetReceiver::sendOOBData(struct rist_peer *pPeer, const uint8_t *pData,
     myOOBBlock.payload = pData;
     myOOBBlock.payload_len = lSize;
 
-    int lStatus = rist_receiver_oob_write(mRistReceiver, &myOOBBlock);
+    int lStatus = rist_oob_write(mRistContext, &myOOBBlock);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_oob_write failed.")
         destroyReceiver();
@@ -345,8 +357,8 @@ bool RISTNetReceiver::sendOOBData(struct rist_peer *pPeer, const uint8_t *pData,
 
 void RISTNetReceiver::getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor) {
     rCppWrapper = CPP_WRAPPER_VERSION;
-    rRistMajor = RIST_PROTOCOL_VERSION;
-    rRistMinor = RIST_SUBVERSION;
+    rRistMajor = LIBRIST_API_VERSION_MAJOR;
+    rRistMinor = LIBRIST_API_VERSION_MINOR;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -364,8 +376,8 @@ RISTNetSender::RISTNetSender() {
 }
 
 RISTNetSender::~RISTNetSender() {
-    if (mRistSender) {
-        int lStatus = rist_sender_destroy(mRistSender);
+    if (mRistContext) {
+        int lStatus = rist_destroy(mRistContext);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_sender_destroy fail.")
         }
@@ -449,7 +461,7 @@ bool RISTNetSender::closeClientConnection(struct rist_peer *lPeer) {
     }
     mClientList.erase(lPeer);
     mClientListMtx.unlock();
-    int lStatus = rist_sender_peer_destroy(mRistSender, lPeer);
+    int lStatus = rist_peer_destroy(mRistContext, lPeer);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_peer_destroy failed: ")
         return false;
@@ -461,7 +473,7 @@ void RISTNetSender::closeAllClientConnections() {
     mClientListMtx.lock();
     for (auto &rPeer: mClientList) {
         struct rist_peer *pPeer = rPeer.first;
-        int status = rist_sender_peer_destroy(mRistSender, pPeer);
+        int status = rist_peer_destroy(mRistContext, pPeer);
         if (status) {
             LOGGER(true, LOGG_ERROR, "rist_sender_peer_destroy failed: ")
         }
@@ -471,9 +483,9 @@ void RISTNetSender::closeAllClientConnections() {
 }
 
 bool RISTNetSender::destroySender() {
-    if (mRistSender) {
-        int lStatus = rist_sender_destroy(mRistSender);
-        mRistSender = nullptr;
+    if (mRistContext) {
+        int lStatus = rist_destroy(mRistContext);
+        mRistContext = nullptr;
         mClientListMtx.lock();
         mClientList.clear();
         mClientListMtx.unlock();
@@ -496,7 +508,15 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
     }
 
     int lStatus;
-    lStatus = rist_sender_create(&mRistSender, rSettings.mProfile, 0, rSettings.mLogLevel);
+    // Default log settings
+    rist_logging_settings* lSettingsPtr = rSettings.mLogSetting.get();
+	lStatus = rist_logging_set(&lSettingsPtr, rSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
+    if (lStatus) {
+        LOGGER(true, LOGG_ERROR, "rist_logging_set failed.")
+        return false;
+	}
+
+    lStatus = rist_sender_create(&mRistContext, rSettings.mProfile, 0, rSettings.mLogSetting.get());
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_create fail.")
         return false;
@@ -519,9 +539,11 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         mRistPeerConfig.recovery_rtt_min = rSettings.mPeerConfig.recovery_rtt_min;
         mRistPeerConfig.recovery_rtt_max = rSettings.mPeerConfig.recovery_rtt_max;
         mRistPeerConfig.weight = std::get<1>(rPeerInfo);
-        mRistPeerConfig.buffer_bloat_mode = rSettings.mPeerConfig.buffer_bloat_mode;
-        mRistPeerConfig.buffer_bloat_limit = rSettings.mPeerConfig.buffer_bloat_limit;
-        mRistPeerConfig.buffer_bloat_hard_limit = rSettings.mPeerConfig.buffer_bloat_hard_limit;
+
+//        mRistPeerConfig.buffer_bloat_mode = rSettings.mPeerConfig.buffer_bloat_mode;
+//        mRistPeerConfig.buffer_bloat_limit = rSettings.mPeerConfig.buffer_bloat_limit;
+//        mRistPeerConfig.buffer_bloat_hard_limit = rSettings.mPeerConfig.buffer_bloat_hard_limit;
+
         mRistPeerConfig.session_timeout = rSettings.mSessionTimeout;
         mRistPeerConfig.keepalive_interval =  rSettings.mKeepAliveInterval;
         mRistPeerConfig.key_size = keysize;
@@ -544,7 +566,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         }
 
         struct rist_peer *peer;
-        lStatus =  rist_sender_peer_create(mRistSender, &peer, &mRistPeerConfig);
+        lStatus =  rist_peer_create(mRistContext, &peer, &mRistPeerConfig);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_sender_peer_create fail: " << peerURL)
             destroySender();
@@ -553,7 +575,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
     }
 
     if (rSettings.mMaxJitter) {
-        lStatus = rist_sender_jitter_max_set(mRistSender, rSettings.mMaxJitter);
+        lStatus = rist_jitter_max_set(mRistContext, rSettings.mMaxJitter);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_sender_jitter_max_set fail.")
             destroySender();
@@ -561,21 +583,21 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         }
     }
 
-    lStatus = rist_sender_oob_callback_set(mRistSender, receiveOOBData, this);
+    lStatus = rist_oob_callback_set(mRistContext, receiveOOBData, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_oob_set fail.")
         destroySender();
         return false;
     }
 
-    lStatus = rist_sender_auth_handler_set(mRistSender, clientConnect, clientDisconnect, this);
+    lStatus = rist_auth_handler_set(mRistContext, clientConnect, clientDisconnect, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_auth_handler_set fail.")
         destroySender();
         return false;
     }
 
-    lStatus = rist_sender_start(mRistSender);
+    lStatus = rist_start(mRistContext);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_start fail.")
         destroySender();
@@ -586,7 +608,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
 }
 
 bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConnectionID) {
-    if (!mRistSender) {
+    if (!mRistContext) {
         LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
         return false;
     }
@@ -596,7 +618,7 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConne
     myRISTDataBlock.payload_len = lSize;
     myRISTDataBlock.flow_id = lConnectionID;
 
-    int lStatus = rist_sender_data_write(mRistSender, &myRISTDataBlock);
+    int lStatus = rist_sender_data_write(mRistContext, &myRISTDataBlock);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_client_write failed.")
         destroySender();
@@ -606,7 +628,7 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConne
 }
 
 bool RISTNetSender::sendOOBData(struct rist_peer *pPeer, const uint8_t *pData, size_t lSize) {
-    if (!mRistSender) {
+    if (!mRistContext) {
         LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
         return false;
     }
@@ -616,7 +638,7 @@ bool RISTNetSender::sendOOBData(struct rist_peer *pPeer, const uint8_t *pData, s
     myOOBBlock.payload = pData;
     myOOBBlock.payload_len = lSize;
 
-    int lStatus = rist_sender_oob_write(mRistSender, &myOOBBlock);
+    int lStatus = rist_oob_write(mRistContext, &myOOBBlock);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_oob_write failed.")
         destroySender();
@@ -627,6 +649,6 @@ bool RISTNetSender::sendOOBData(struct rist_peer *pPeer, const uint8_t *pData, s
 
 void RISTNetSender::getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor) {
     rCppWrapper = CPP_WRAPPER_VERSION;
-    rRistMajor = RIST_PROTOCOL_VERSION;
-    rRistMinor = RIST_SUBVERSION;
+    rRistMajor = LIBRIST_API_VERSION_MAJOR;
+    rRistMinor = LIBRIST_API_VERSION_MINOR;
 }
