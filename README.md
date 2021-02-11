@@ -4,12 +4,6 @@
 # cppRISTWrapper
 
 
--
-
-***(LibRIST removed CMake from the project. It's no longer possible to use this C++ wrapper)***
-
--
-
 
 
 The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating a thin C++ layer around librist.
@@ -17,7 +11,10 @@ The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating
 
 ## Building
 
-Requires cmake version >= **3.10** and **C++17**
+
+Requires cmake version >= **3.10**, **C++17**, **meson** and **ninja**
+
+The project is currently building on **Linux** and **MacOS**.
 
 **Release:**
 

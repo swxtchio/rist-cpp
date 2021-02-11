@@ -151,7 +151,10 @@ int main() {
     RISTNetSender::RISTNetSenderSettings mySendConfiguration;
     mySendConfiguration.mLogLevel = RIST_LOG_WARN;
     //mySendConfiguration.mPSK = "fdijfdoijfsopsmcfjiosdmcjfiompcsjofi33849384983943"; //Enable encryption by providing a PSK
-    myRISTNetSender.initSender(interfaceListSender, mySendConfiguration);
+    auto retVal = myRISTNetSender.initSender(interfaceListSender, mySendConfiguration);
+    if (!retVal) {
+        std::cout << "initSender fail" << std::endl;
+    }
 
     std::vector<uint8_t> mydata(1000);
     std::generate(mydata.begin(), mydata.end(), [n = 0]() mutable { return n++; });

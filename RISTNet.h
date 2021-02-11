@@ -98,9 +98,9 @@ public:
           mPeerConfig.recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER;
           mPeerConfig.recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN;
           mPeerConfig.recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX;
-          mPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE; //Fixme
-          mPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES; //fixme
-          mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES; //fixme
+          mPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE;
+          mPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES;
+          mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES;
           mPeerConfig.weight = 5;
           mPeerConfig.session_timeout = RIST_DEFAULT_SESSION_TIMEOUT;
       }
@@ -304,9 +304,9 @@ public:
           mPeerConfig.recovery_reorder_buffer = RIST_DEFAULT_RECOVERY_REORDER_BUFFER;
           mPeerConfig.recovery_rtt_min = RIST_DEFAULT_RECOVERY_RTT_MIN;
           mPeerConfig.recovery_rtt_max = RIST_DEFAULT_RECOVERY_RTT_MAX;
-          mPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE; //Fixme
-          mPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES; //fixme
-          mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES; //fixme
+          mPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE;
+          mPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES;
+          mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES;
           mPeerConfig.weight = 5;
           mPeerConfig.session_timeout = RIST_DEFAULT_SESSION_TIMEOUT;
       };

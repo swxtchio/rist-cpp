@@ -150,6 +150,11 @@ int RISTNetReceiver::clientConnect(void *pArg, const char* pConnectingIP, uint16
 int RISTNetReceiver::clientDisconnect(void *pArg, struct rist_peer *pPeer) {
     RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
     lWeakSelf->mClientListMtx.lock();
+    if (lWeakSelf->mClientList.empty()) {
+        lWeakSelf->mClientListMtx.unlock();
+        return 0;
+    }
+
     if (lWeakSelf->mClientList.find(pPeer) == lWeakSelf->mClientList.end()) {
         LOGGER(true, LOGG_ERROR, "RISTNetReceiver::clientDisconnect unknown peer")
         lWeakSelf->mClientListMtx.unlock();
@@ -261,11 +266,9 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         mRistPeerConfig.recovery_rtt_min = rSettings.mPeerConfig.recovery_rtt_min;
         mRistPeerConfig.recovery_rtt_max = rSettings.mPeerConfig.recovery_rtt_max;
         mRistPeerConfig.weight = 5;
-
-        //mRistPeerConfig.congestion_control_mode = RIST_DEFAULT_CONGESTION_CONTROL_MODE; //Fixme
-        //mRistPeerConfig.min_retries = RIST_DEFAULT_MIN_RETRIES; //fixme
-        //mRistPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES; //fixme
-
+        mRistPeerConfig.congestion_control_mode = rSettings.mPeerConfig.congestion_control_mode;
+        mRistPeerConfig.min_retries = rSettings.mPeerConfig.min_retries;
+        mRistPeerConfig.max_retries = rSettings.mPeerConfig.max_retries;
         mRistPeerConfig.session_timeout = rSettings.mSessionTimeout;
         mRistPeerConfig.keepalive_interval =  rSettings.mKeepAliveInterval;
         mRistPeerConfig.key_size = keysize;
@@ -427,8 +430,13 @@ int RISTNetSender::clientConnect(void *pArg, const char* pConnectingIP, uint16_t
 int RISTNetSender::clientDisconnect(void *pArg, struct rist_peer *pPeer) {
     RISTNetSender *lWeakSelf = (RISTNetSender *) pArg;
     lWeakSelf->mClientListMtx.lock();
+    if (lWeakSelf->mClientList.empty()) {
+        lWeakSelf->mClientListMtx.unlock();
+        return 0;
+    }
+
     if (lWeakSelf->mClientList.find(pPeer) == lWeakSelf->mClientList.end()) {
-        LOGGER(true, LOGG_ERROR, "RISTNetReceiver::clientDisconnect unknown peer")
+        LOGGER(true, LOGG_ERROR, "RISTNetSender::clientDisconnect unknown peer")
         lWeakSelf->mClientListMtx.unlock();
         return 0;
     } else {
@@ -539,11 +547,9 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         mRistPeerConfig.recovery_rtt_min = rSettings.mPeerConfig.recovery_rtt_min;
         mRistPeerConfig.recovery_rtt_max = rSettings.mPeerConfig.recovery_rtt_max;
         mRistPeerConfig.weight = std::get<1>(rPeerInfo);
-
-//        mRistPeerConfig.buffer_bloat_mode = rSettings.mPeerConfig.buffer_bloat_mode;
-//        mRistPeerConfig.buffer_bloat_limit = rSettings.mPeerConfig.buffer_bloat_limit;
-//        mRistPeerConfig.buffer_bloat_hard_limit = rSettings.mPeerConfig.buffer_bloat_hard_limit;
-
+        mRistPeerConfig.congestion_control_mode = rSettings.mPeerConfig.congestion_control_mode;
+        mRistPeerConfig.min_retries = rSettings.mPeerConfig.min_retries;
+        mRistPeerConfig.max_retries = rSettings.mPeerConfig.max_retries;
         mRistPeerConfig.session_timeout = rSettings.mSessionTimeout;
         mRistPeerConfig.keepalive_interval =  rSettings.mKeepAliveInterval;
         mRistPeerConfig.key_size = keysize;
@@ -619,11 +625,17 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConne
     myRISTDataBlock.flow_id = lConnectionID;
 
     int lStatus = rist_sender_data_write(mRistContext, &myRISTDataBlock);
-    if (lStatus) {
+    if (lStatus < 0) {
         LOGGER(true, LOGG_ERROR, "rist_client_write failed.")
         destroySender();
         return false;
     }
+
+    if (lStatus != lSize) {
+        LOGGER(true, LOGG_ERROR, "Did send " << lStatus << " bytes, out of " << lSize << " bytes." )
+        return false;
+    }
+    
     return true;
 }
 
