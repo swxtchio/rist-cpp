@@ -11,17 +11,14 @@ IF( NOT CMAKE_BUILD_TYPE )
 ENDIF()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
-
 find_package (Threads REQUIRED)
-
-##[[
 include(ExternalProject)
+
 ExternalProject_Add(project_rist
         CONFIGURE_COMMAND ""
         GIT_REPOSITORY https://code.videolan.org/rist/librist.git
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rist
         BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rist
-        CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         BUILD_COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/rist/build && cd ${CMAKE_CURRENT_SOURCE_DIR}/rist/build && meson .. --default-library=static && ninja
         GIT_PROGRESS 1
         STEP_TARGETS build
@@ -37,9 +34,19 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/include/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/include/librist)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rist/build/include/librist)
 
-file(GLOB lz4 "${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/*.c")
+set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4.c PROPERTIES GENERATED TRUE)
+set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4frame.c PROPERTIES GENERATED TRUE)
+set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4hc.c PROPERTIES GENERATED TRUE)
+set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/xxhash.c PROPERTIES GENERATED TRUE)
+
 link_directories(${CMAKE_SOURCE_DIR}/rist/build/subprojects/mbedtls-2.23.0)
-add_library(ristnet STATIC RISTNet.cpp ${lz4})
+add_library(ristnet STATIC
+        RISTNet.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4frame.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4hc.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/xxhash.c
+        )
 target_link_libraries(ristnet rist Threads::Threads cm_mbedcrypto)
 
 add_executable(rist_cpp main.cpp)

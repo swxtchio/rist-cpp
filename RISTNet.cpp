@@ -635,7 +635,7 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConne
         LOGGER(true, LOGG_ERROR, "Did send " << lStatus << " bytes, out of " << lSize << " bytes." )
         return false;
     }
-    
+
     return true;
 }
 
