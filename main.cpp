@@ -10,9 +10,6 @@
 //Create the receiver
 RISTNetReceiver myRISTNetReceiver;
 
-//Helper building RIST URL's
-RISTNetTools myRISTNetTools;
-
 int packetCounter;
 
 //This is my class managed by the network connection.
@@ -32,7 +29,7 @@ public:
 };
 
 //Return a connection object. (Return nullptr if you don't want to connect to that client)
-std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uint16_t port) {
+std::shared_ptr<NetworkConnection> validateConnection(const std::string &ipAddress, uint16_t port) {
     std::cout << "Connecting IP: " << ipAddress << ":" << unsigned(port) << std::endl;
 
     //Do we want to allow this connection?
@@ -51,7 +48,7 @@ std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uin
 }
 
 int
-dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer,
+dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, rist_peer *pPeer,
                uint16_t connectionID) {
     //Get back your class like this ->
     if (connection) {
@@ -79,7 +76,7 @@ dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection
 }
 
 void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection,
-                         struct rist_peer *pPeer) {
+                         rist_peer *pPeer) {
     std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
 }
 
@@ -88,7 +85,7 @@ int main() {
     uint32_t cppWrapperVersion;
     uint32_t ristMajor;
     uint32_t ristMinor;
-    myRISTNetReceiver.getVersion(cppWrapperVersion, ristMajor, ristMinor);
+    RISTNetReceiver::getVersion(cppWrapperVersion, ristMajor, ristMinor);
     std::cout << "cppRISTWrapper version: " << unsigned(cppWrapperVersion) << " librist version: "
               << unsigned(ristMajor) << "." << unsigned(ristMinor) << std::endl;
 
@@ -111,10 +108,10 @@ int main() {
     //Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
     std::string lURL;
     std::vector<std::string> interfaceListReceiver;
-    if (myRISTNetTools.buildRISTURL("0.0.0.0", "8000", lURL, true)) {
+    if (RISTNetTools::buildRISTURL("0.0.0.0", "8000", lURL, true)) {
         interfaceListReceiver.push_back(lURL);
     }
-    if (myRISTNetTools.buildRISTURL("0.0.0.0", "9000", lURL, true)) {
+    if (RISTNetTools::buildRISTURL("0.0.0.0", "9000", lURL, true)) {
         interfaceListReceiver.push_back(lURL);
     }
 
@@ -144,7 +141,7 @@ int main() {
 
     //Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
     std::vector<std::tuple<std::string, int>> interfaceListSender;
-    if (myRISTNetTools.buildRISTURL("127.0.0.1", "8000", lURL, false)) {
+    if (RISTNetTools::buildRISTURL("127.0.0.1", "8000", lURL, false)) {
         interfaceListSender.push_back(std::tuple<std::string, int>(lURL,5));
     }
 
@@ -165,7 +162,7 @@ int main() {
     }
 
     myRISTNetReceiver.getActiveClients(
-            [&](std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &rClientList) {
+            [&](std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &rClientList) {
                 for (auto &rPeer: rClientList) {
                     std::cout << "Send OOB message" << std::endl;
                     myRISTNetReceiver.sendOOBData(rPeer.first, mydata.data(), mydata.size());

@@ -46,7 +46,7 @@
   */
 class NetworkConnection {
 public:
-  std::any mObject; //Contains your object
+    std::any mObject; //Contains your object
 };
 
 /**
@@ -54,16 +54,20 @@ public:
  *
  * \brief
  *
- * A helper class for the RIST C++ wrapper
+ * A static helper class for the RIST C++ wrapper
  *
  */
 class RISTNetTools {
 public:
-  ///Build the librist url based on name/ip, port and if it's a listen or not peer
-  bool buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen);
+    /// Build the librist url based on name/ip, port and if it's a listen or not peer
+    static bool buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen);
 private:
-  bool isIPv4(const std::string &rStr);
-  bool isIPv6(const std::string &rStr);
+
+    /// This class cannot be instantiated
+    RISTNetTools() = default;
+
+    static bool isIPv4(const std::string &rStr);
+    static bool isIPv6(const std::string &rStr);
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -109,8 +113,8 @@ public:
 
     rist_log_level mLogLevel = RIST_LOG_ERROR;
     std::unique_ptr<rist_logging_settings> mLogSetting;
-    std::string mPSK = "";
-    std::string mCNAME = "";
+    std::string mPSK;
+    std::string mCNAME;
     int mSessionTimeout = 5000;
     int mKeepAliveInterval = 10000;
     int mMaxjitter = 0;
@@ -142,8 +146,7 @@ public:
    *
    * @param function getting the map of active clients (normally a lambda).
    */
-  void getActiveClients(std::function<void(std::map<struct rist_peer *,
-                                                    std::shared_ptr<NetworkConnection>> &)> function);
+  void getActiveClients(std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
 
   /**
    * @brief Close a client connection
@@ -151,7 +154,7 @@ public:
    * Closes a client connection.
    *
    */
-  bool closeClientConnection(struct rist_peer *);
+  bool closeClientConnection(rist_peer *);
 
 
   /**
@@ -173,7 +176,7 @@ public:
    * @param length of the data
    *
    */
-  bool sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize);
+  bool sendOOBData(rist_peer *pPeer, const uint8_t *pData, size_t lSize);
 
   /**
    * @brief Destroys the receiver
@@ -190,7 +193,7 @@ public:
    *
    * @return The cpp wrapper version, rist major and minor version.
    */
-  void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
+  static void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
   //To be implemented
   //void getInfo();
@@ -205,7 +208,7 @@ public:
    * @param function getting data from the sender.
    * @return 0 to keep the connection else -1.
    */
-  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer, uint16_t lConnectionID)>
+  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer, uint16_t lConnectionID)>
       networkDataCallback = nullptr;
 
   /**
@@ -217,7 +220,7 @@ public:
    *
    * @param function getting data from the sender.
    */
-  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer)>
       networkOOBDataCallback = nullptr;
 
   /**
@@ -253,10 +256,10 @@ private:
   static int receiveOOBData(void *pArg, const rist_oob_block *pOOB_block);
 
   // Private method called when a client connects
-  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, struct rist_peer *pPeer);
+  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, rist_peer *pPeer);
 
   // Private method called when a client disconnects
-  static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
+  static int clientDisconnect(void *pArg, rist_peer *pPeer);
 
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
@@ -268,7 +271,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
 };
 
@@ -315,8 +318,8 @@ public:
 
     rist_log_level mLogLevel = RIST_LOG_ERROR;
     std::unique_ptr<rist_logging_settings> mLogSetting;
-    std::string mPSK = "";
-    std::string mCNAME = "";
+    std::string mPSK;
+    std::string mCNAME;
     uint32_t mSessionTimeout = 5000;
     uint32_t mKeepAliveInterval = 10000;
     int mMaxJitter = 0;
@@ -337,7 +340,7 @@ public:
    * @param The sender settings
    * @return true on success
    */
-  bool initSender(std::vector<std::tuple<std::string,int>> &rPeerList,
+  bool initSender(std::vector<std::tuple<std::string, int>> &rPeerList,
                   RISTNetSenderSettings &rSettings);
 
   /**
@@ -347,8 +350,7 @@ public:
    *
    * @param function getting the map of active clients (normally a lambda).
    */
-  void getActiveClients(std::function<void(std::map<struct rist_peer *,
-                                                    std::shared_ptr<NetworkConnection>> &)> function);
+  void getActiveClients(const std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
 
   /**
    * @brief Close a client connection
@@ -356,7 +358,7 @@ public:
    * Closes a client connection.
    *
    */
-  bool closeClientConnection(struct rist_peer *);
+  bool closeClientConnection(rist_peer *);
 
   /**
    * @brief Close all active connections
@@ -389,7 +391,7 @@ public:
   * @param length of the data
   *
   */
-  bool sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize);
+  bool sendOOBData(rist_peer *pPeer, const uint8_t *pData, size_t lSize);
 
   /**
    * @brief Destroys the sender
@@ -406,7 +408,7 @@ public:
    *
    * @return The cpp wrapper version, rist major and minor version.
    */
-   void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
+   static void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
   //To be implemented
   //void getInfo();
@@ -420,7 +422,7 @@ public:
    *
    * @param function getting data from the sender.
    */
-  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer)>
       networkOOBDataCallback = nullptr;
 
   /**
@@ -446,17 +448,17 @@ public:
 
 private:
 
-  std::shared_ptr<NetworkConnection> validateConnectionStub(std::string ipAddress, uint16_t port);
+  std::shared_ptr<NetworkConnection> validateConnectionStub(const std::string &ipAddress, uint16_t port);
   void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving OOB data from librist C-API
   static int receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock);
 
   // Private method called when a client connects
-  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, struct rist_peer *pPeer);
+  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, rist_peer *pPeer);
 
   // Private method called when a client disconnects
-  static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
+  static int clientDisconnect(void *pArg, rist_peer *pPeer);
 
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;
@@ -468,7 +470,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
 };
 
