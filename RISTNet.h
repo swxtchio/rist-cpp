@@ -46,7 +46,7 @@
   */
 class NetworkConnection {
 public:
-  std::any mObject; //Contains your object
+    std::any mObject; //Contains your object
 };
 
 /**
@@ -54,16 +54,20 @@ public:
  *
  * \brief
  *
- * A helper class for the RIST C++ wrapper
+ * A static helper class for the RIST C++ wrapper
  *
  */
 class RISTNetTools {
 public:
-  ///Build the librist url based on name/ip, port and if it's a listen or not peer
-  bool buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen);
+    /// Build the librist url based on name/ip, port and if it's a listen or not peer
+    static bool buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen);
 private:
-  bool isIPv4(const std::string &rStr);
-  bool isIPv6(const std::string &rStr);
+
+    /// This class cannot be instantiated
+    RISTNetTools() {}
+
+    static bool isIPv4(const std::string &rStr);
+    static bool isIPv6(const std::string &rStr);
 };
 
 //---------------------------------------------------------------------------------------------------------------------

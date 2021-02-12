@@ -10,9 +10,6 @@
 //Create the receiver
 RISTNetReceiver myRISTNetReceiver;
 
-//Helper building RIST URL's
-RISTNetTools myRISTNetTools;
-
 int packetCounter;
 
 //This is my class managed by the network connection.
@@ -111,10 +108,10 @@ int main() {
     //Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
     std::string lURL;
     std::vector<std::string> interfaceListReceiver;
-    if (myRISTNetTools.buildRISTURL("0.0.0.0", "8000", lURL, true)) {
+    if (RISTNetTools::buildRISTURL("0.0.0.0", "8000", lURL, true)) {
         interfaceListReceiver.push_back(lURL);
     }
-    if (myRISTNetTools.buildRISTURL("0.0.0.0", "9000", lURL, true)) {
+    if (RISTNetTools::buildRISTURL("0.0.0.0", "9000", lURL, true)) {
         interfaceListReceiver.push_back(lURL);
     }
 
@@ -144,7 +141,7 @@ int main() {
 
     //Generate a vector of RIST URL's,  ip(name), ports, RIST URL output, listen(true) or send mode (false)
     std::vector<std::tuple<std::string, int>> interfaceListSender;
-    if (myRISTNetTools.buildRISTURL("127.0.0.1", "8000", lURL, false)) {
+    if (RISTNetTools::buildRISTURL("127.0.0.1", "8000", lURL, false)) {
         interfaceListSender.push_back(std::tuple<std::string, int>(lURL,5));
     }
 
