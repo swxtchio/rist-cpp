@@ -90,7 +90,8 @@ RISTNetReceiver::~RISTNetReceiver() {
 //---------------------------------------------------------------------------------------------------------------------
 
 
-std::shared_ptr<NetworkConnection> RISTNetReceiver::validateConnectionStub(std::string lIPAddress, uint16_t lPort) {
+std::shared_ptr<RISTNetReceiver::NetworkConnection> RISTNetReceiver::validateConnectionStub(std::string lIPAddress,
+                                                                                            uint16_t lPort) {
     LOGGER(true, LOGG_ERROR,
            "validateConnectionCallback not implemented. Will not accept connection from: " << lIPAddress << ":"
                                                                                            << unsigned(lPort))
@@ -383,7 +384,8 @@ RISTNetSender::~RISTNetSender() {
 // RISTNetSender  --  Callbacks --- Start
 //---------------------------------------------------------------------------------------------------------------------
 
-std::shared_ptr<NetworkConnection> RISTNetSender::validateConnectionStub(const std::string &ipAddress, uint16_t port) {
+std::shared_ptr<RISTNetSender::NetworkConnection> RISTNetSender::validateConnectionStub(const std::string &ipAddress,
+                                                                                        uint16_t port) {
     LOGGER(true, LOGG_ERROR,
            "validateConnectionCallback not implemented. Will not accept connection from: " << ipAddress << ":"
                                                                                            << unsigned(port))

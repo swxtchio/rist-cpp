@@ -36,19 +36,6 @@
 
 
 
- /**
-  * \class NetworkConnection
-  *
-  * \brief
-  *
-  * A NetworkConnection class is the maintainer and carrier of the user class passed to the connection.
-  *
-  */
-class NetworkConnection {
-public:
-    std::any mObject; //Contains your object
-};
-
 /**
  * \class RISTNetTools
  *
@@ -90,7 +77,21 @@ private:
 class RISTNetReceiver {
 public:
 
-  struct RISTNetReceiverSettings {
+    /**
+     * \class NetworkConnection
+     *
+     * \brief
+     *
+     * A NetworkConnection class is the maintainer and carrier of the user class passed to the connection.
+     *
+     */
+    class NetworkConnection {
+    public:
+        std::any mObject; //Contains your object
+    };
+
+
+    struct RISTNetReceiverSettings {
       RISTNetReceiverSettings() {
           mPeerConfig.version = RIST_PEER_CONFIG_VERSION;
           mPeerConfig.virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT;
@@ -294,6 +295,19 @@ private:
  */
 class RISTNetSender {
 public:
+
+    /**
+     * \class NetworkConnection
+     *
+     * \brief
+     *
+     * A NetworkConnection class is the maintainer and carrier of the user class passed to the connection.
+     *
+     */
+    class NetworkConnection {
+    public:
+        std::any mObject; //Contains your object
+    };
 
   struct RISTNetSenderSettings {
       RISTNetSenderSettings() {
