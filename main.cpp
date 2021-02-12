@@ -29,7 +29,7 @@ public:
 };
 
 //Return a connection object. (Return nullptr if you don't want to connect to that client)
-std::shared_ptr<NetworkConnection> validateConnection(const std::string &ipAddress, uint16_t port) {
+std::shared_ptr<RISTNetReceiver::NetworkConnection> validateConnection(const std::string &ipAddress, uint16_t port) {
     std::cout << "Connecting IP: " << ipAddress << ":" << unsigned(port) << std::endl;
 
     //Do we want to allow this connection?
@@ -42,14 +42,14 @@ std::shared_ptr<NetworkConnection> validateConnection(const std::string &ipAddre
     // If the network connection is dropped the destructor in your class is called as long
     // as you do not also hold a reference to that pointer since it's shared.
 
-    auto netConn = std::make_shared<NetworkConnection>(); // Create the network connection
+    auto netConn = std::make_shared<RISTNetReceiver::NetworkConnection>(); // Create the network connection
     netConn->mObject = std::make_shared<MyClass>(); // Attach your object.
     return netConn;
 }
 
 int
-dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, rist_peer *pPeer,
-               uint16_t connectionID) {
+dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<RISTNetReceiver::NetworkConnection> &connection,
+               rist_peer *pPeer, uint16_t connectionID) {
     //Get back your class like this ->
     if (connection) {
         auto v = std::any_cast<std::shared_ptr<MyClass> &>(connection->mObject);
@@ -75,7 +75,7 @@ dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection
     return 0; //Keep connection
 }
 
-void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection,
+void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<RISTNetSender::NetworkConnection> &connection,
                          rist_peer *pPeer) {
     std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
 }
@@ -162,7 +162,7 @@ int main() {
     }
 
     myRISTNetReceiver.getActiveClients(
-            [&](std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &rClientList) {
+            [&](std::map<rist_peer *, std::shared_ptr<RISTNetReceiver::NetworkConnection>> &rClientList) {
                 for (auto &rPeer: rClientList) {
                     std::cout << "Send OOB message" << std::endl;
                     myRISTNetReceiver.sendOOBData(rPeer.first, mydata.data(), mydata.size());
