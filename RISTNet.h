@@ -146,8 +146,7 @@ public:
    *
    * @param function getting the map of active clients (normally a lambda).
    */
-  void getActiveClients(std::function<void(std::map<struct rist_peer *,
-                                                    std::shared_ptr<NetworkConnection>> &)> function);
+  void getActiveClients(std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
 
   /**
    * @brief Close a client connection
@@ -155,7 +154,7 @@ public:
    * Closes a client connection.
    *
    */
-  bool closeClientConnection(struct rist_peer *);
+  bool closeClientConnection(rist_peer *);
 
 
   /**
@@ -177,7 +176,7 @@ public:
    * @param length of the data
    *
    */
-  bool sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize);
+  bool sendOOBData(rist_peer *pPeer, const uint8_t *pData, size_t lSize);
 
   /**
    * @brief Destroys the receiver
@@ -209,7 +208,7 @@ public:
    * @param function getting data from the sender.
    * @return 0 to keep the connection else -1.
    */
-  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer, uint16_t lConnectionID)>
+  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer, uint16_t lConnectionID)>
       networkDataCallback = nullptr;
 
   /**
@@ -221,7 +220,7 @@ public:
    *
    * @param function getting data from the sender.
    */
-  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer)>
       networkOOBDataCallback = nullptr;
 
   /**
@@ -257,10 +256,10 @@ private:
   static int receiveOOBData(void *pArg, const rist_oob_block *pOOB_block);
 
   // Private method called when a client connects
-  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, struct rist_peer *pPeer);
+  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, rist_peer *pPeer);
 
   // Private method called when a client disconnects
-  static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
+  static int clientDisconnect(void *pArg, rist_peer *pPeer);
 
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
@@ -272,7 +271,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
 };
 
@@ -341,7 +340,7 @@ public:
    * @param The sender settings
    * @return true on success
    */
-  bool initSender(std::vector<std::tuple<std::string,int>> &rPeerList,
+  bool initSender(std::vector<std::tuple<std::string, int>> &rPeerList,
                   RISTNetSenderSettings &rSettings);
 
   /**
@@ -351,8 +350,7 @@ public:
    *
    * @param function getting the map of active clients (normally a lambda).
    */
-  void getActiveClients(std::function<void(std::map<struct rist_peer *,
-                                                    std::shared_ptr<NetworkConnection>> &)> function);
+  void getActiveClients(std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
 
   /**
    * @brief Close a client connection
@@ -360,7 +358,7 @@ public:
    * Closes a client connection.
    *
    */
-  bool closeClientConnection(struct rist_peer *);
+  bool closeClientConnection(rist_peer *);
 
   /**
    * @brief Close all active connections
@@ -393,7 +391,7 @@ public:
   * @param length of the data
   *
   */
-  bool sendOOBData(struct rist_peer *pPeer ,const uint8_t *pData, size_t lSize);
+  bool sendOOBData(rist_peer *pPeer, const uint8_t *pData, size_t lSize);
 
   /**
    * @brief Destroys the sender
@@ -424,7 +422,7 @@ public:
    *
    * @param function getting data from the sender.
    */
-  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, struct rist_peer *pPeer)>
+  std::function<void(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer)>
       networkOOBDataCallback = nullptr;
 
   /**
@@ -457,10 +455,10 @@ private:
   static int receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock);
 
   // Private method called when a client connects
-  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, struct rist_peer *pPeer);
+  static int clientConnect(void *pArg, const char* pConnectingIP, uint16_t lConnectingPort, const char* pIP, uint16_t lPort, rist_peer *pPeer);
 
   // Private method called when a client disconnects
-  static int clientDisconnect(void *pArg, struct rist_peer *pPeer);
+  static int clientDisconnect(void *pArg, rist_peer *pPeer);
 
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;
@@ -472,7 +470,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
 
 };
 

@@ -48,7 +48,7 @@ std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uin
 }
 
 int
-dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, struct rist_peer *pPeer,
+dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection, rist_peer *pPeer,
                uint16_t connectionID) {
     //Get back your class like this ->
     if (connection) {
@@ -76,7 +76,7 @@ dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection
 }
 
 void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<NetworkConnection> &connection,
-                         struct rist_peer *pPeer) {
+                         rist_peer *pPeer) {
     std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
 }
 
@@ -162,7 +162,7 @@ int main() {
     }
 
     myRISTNetReceiver.getActiveClients(
-            [&](std::map<struct rist_peer *, std::shared_ptr<NetworkConnection>> &rClientList) {
+            [&](std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &rClientList) {
                 for (auto &rPeer: rClientList) {
                     std::cout << "Send OOB message" << std::endl;
                     myRISTNetReceiver.sendOOBData(rPeer.first, mydata.data(), mydata.size());
