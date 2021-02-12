@@ -14,16 +14,16 @@
 //---------------------------------------------------------------------------------------------------------------------
 
 bool RISTNetTools::isIPv4(const std::string &rStr) {
-    sockaddr_in lsa;
+    sockaddr_in lsa{};
     return inet_pton(AF_INET, rStr.c_str(), &(lsa.sin_addr)) != 0;
 }
 
 bool RISTNetTools::isIPv6(const std::string &rStr) {
-    sockaddr_in6 lsa;
+    sockaddr_in6 lsa{};
     return inet_pton(AF_INET6, rStr.c_str(), &(lsa.sin6_addr)) != 0;
 }
 
-bool RISTNetTools::buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen) {
+bool RISTNetTools::buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen) {
     int lIPType;
     if (isIPv4(lIP)) {
         lIPType = AF_INET;
@@ -40,7 +40,7 @@ bool RISTNetTools::buildRISTURL(std::string lIP, std::string lPort, std::string 
         LOGGER(true, LOGG_ERROR, " " << "Provided Port number not valid.")
         return false;
     }
-    std::string lRistURL = "";
+    std::string lRistURL{};
     if (lIPType == AF_INET) {
         lRistURL += "rist://";
     } else {
@@ -221,7 +221,7 @@ bool RISTNetReceiver::destroyReceiver() {
 
 bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
                                    RISTNetReceiver::RISTNetReceiverSettings &rSettings) {
-    if (!rURLList.size()) {
+    if (rURLList.empty()) {
         LOGGER(true, LOGG_ERROR, "URL list is empty.")
         return false;
     }
@@ -244,7 +244,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
     }
     for (auto &rURL: rURLList) {
         int keysize = 0;
-        if (rSettings.mPSK.size()) {
+        if (!rSettings.mPSK.empty()) {
             keysize = 128;
         }
         mRistPeerConfig.version = RIST_PEER_CONFIG_VERSION;
@@ -268,7 +268,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
             strncpy((char *) &mRistPeerConfig.secret[0], rSettings.mPSK.c_str(), 128);
         }
 
-        if (rSettings.mCNAME.size()) {
+        if (!rSettings.mCNAME.empty()) {
             strncpy((char *) &mRistPeerConfig.cname[0], rSettings.mCNAME.c_str(), 128);
         }
 
@@ -335,7 +335,7 @@ bool RISTNetReceiver::sendOOBData(rist_peer *pPeer, const uint8_t *pData, size_t
         return false;
     }
 
-    rist_oob_block myOOBBlock = {0};
+    rist_oob_block myOOBBlock = {nullptr};
     myOOBBlock.peer = pPeer;
     myOOBBlock.payload = pData;
     myOOBBlock.payload_len = lSize;
@@ -383,7 +383,7 @@ RISTNetSender::~RISTNetSender() {
 // RISTNetSender  --  Callbacks --- Start
 //---------------------------------------------------------------------------------------------------------------------
 
-std::shared_ptr<NetworkConnection> RISTNetSender::validateConnectionStub(std::string ipAddress, uint16_t port) {
+std::shared_ptr<NetworkConnection> RISTNetSender::validateConnectionStub(const std::string &ipAddress, uint16_t port) {
     LOGGER(true, LOGG_ERROR,
            "validateConnectionCallback not implemented. Will not accept connection from: " << ipAddress << ":"
                                                                                            << unsigned(port))
@@ -436,7 +436,7 @@ int RISTNetSender::clientDisconnect(void *pArg, rist_peer *pPeer) {
 //---------------------------------------------------------------------------------------------------------------------
 
 void RISTNetSender::getActiveClients(
-        std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
+        const std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
     std::lock_guard<std::mutex> lLock(mClientListMtx);
     if (lFunction) {
         lFunction(mClientList);
@@ -490,7 +490,7 @@ bool RISTNetSender::destroySender() {
 bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerList,
                                RISTNetSenderSettings &rSettings) {
 
-    if (!rPeerList.size()) {
+    if (rPeerList.empty()) {
         LOGGER(true, LOGG_ERROR, "URL list is empty.")
         return false;
     }
@@ -514,7 +514,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         auto peerURL = std::get<0>(rPeerInfo);
 
         int keysize = 0;
-        if (rSettings.mPSK.size()) {
+        if (!rSettings.mPSK.empty()) {
             keysize = 128;
         }
         mRistPeerConfig.version = RIST_PEER_CONFIG_VERSION;
@@ -538,7 +538,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
             strncpy((char *) &mRistPeerConfig.secret[0], rSettings.mPSK.c_str(), 128);
         }
 
-        if (rSettings.mCNAME.size()) {
+        if (!rSettings.mCNAME.empty()) {
             strncpy((char *) &mRistPeerConfig.cname[0], rSettings.mCNAME.c_str(), 128);
         }
 
@@ -599,7 +599,7 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConne
         return false;
     }
 
-    rist_data_block myRISTDataBlock = {0};
+    rist_data_block myRISTDataBlock = {nullptr};
     myRISTDataBlock.payload = pData;
     myRISTDataBlock.payload_len = lSize;
     myRISTDataBlock.flow_id = lConnectionID;

@@ -29,7 +29,7 @@ public:
 };
 
 //Return a connection object. (Return nullptr if you don't want to connect to that client)
-std::shared_ptr<NetworkConnection> validateConnection(std::string ipAddress, uint16_t port) {
+std::shared_ptr<NetworkConnection> validateConnection(const std::string &ipAddress, uint16_t port) {
     std::cout << "Connecting IP: " << ipAddress << ":" << unsigned(port) << std::endl;
 
     //Do we want to allow this connection?
@@ -85,7 +85,7 @@ int main() {
     uint32_t cppWrapperVersion;
     uint32_t ristMajor;
     uint32_t ristMinor;
-    myRISTNetReceiver.getVersion(cppWrapperVersion, ristMajor, ristMinor);
+    RISTNetReceiver::getVersion(cppWrapperVersion, ristMajor, ristMinor);
     std::cout << "cppRISTWrapper version: " << unsigned(cppWrapperVersion) << " librist version: "
               << unsigned(ristMajor) << "." << unsigned(ristMinor) << std::endl;
 

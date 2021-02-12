@@ -60,11 +60,11 @@ public:
 class RISTNetTools {
 public:
     /// Build the librist url based on name/ip, port and if it's a listen or not peer
-    static bool buildRISTURL(std::string lIP, std::string lPort, std::string &rURL, bool lListen);
+    static bool buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen);
 private:
 
     /// This class cannot be instantiated
-    RISTNetTools() {}
+    RISTNetTools() = default;
 
     static bool isIPv4(const std::string &rStr);
     static bool isIPv6(const std::string &rStr);
@@ -113,8 +113,8 @@ public:
 
     rist_log_level mLogLevel = RIST_LOG_ERROR;
     std::unique_ptr<rist_logging_settings> mLogSetting;
-    std::string mPSK = "";
-    std::string mCNAME = "";
+    std::string mPSK;
+    std::string mCNAME;
     int mSessionTimeout = 5000;
     int mKeepAliveInterval = 10000;
     int mMaxjitter = 0;
@@ -193,7 +193,7 @@ public:
    *
    * @return The cpp wrapper version, rist major and minor version.
    */
-  void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
+  static void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
   //To be implemented
   //void getInfo();
@@ -318,8 +318,8 @@ public:
 
     rist_log_level mLogLevel = RIST_LOG_ERROR;
     std::unique_ptr<rist_logging_settings> mLogSetting;
-    std::string mPSK = "";
-    std::string mCNAME = "";
+    std::string mPSK;
+    std::string mCNAME;
     uint32_t mSessionTimeout = 5000;
     uint32_t mKeepAliveInterval = 10000;
     int mMaxJitter = 0;
@@ -350,7 +350,7 @@ public:
    *
    * @param function getting the map of active clients (normally a lambda).
    */
-  void getActiveClients(std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
+  void getActiveClients(const std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> function);
 
   /**
    * @brief Close a client connection
@@ -408,7 +408,7 @@ public:
    *
    * @return The cpp wrapper version, rist major and minor version.
    */
-   void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
+   static void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
   //To be implemented
   //void getInfo();
@@ -448,7 +448,7 @@ public:
 
 private:
 
-  std::shared_ptr<NetworkConnection> validateConnectionStub(std::string ipAddress, uint16_t port);
+  std::shared_ptr<NetworkConnection> validateConnectionStub(const std::string &ipAddress, uint16_t port);
   void dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving OOB data from librist C-API
