@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(rist-cpp)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #If no build type is set then force Release
 IF( NOT CMAKE_BUILD_TYPE )
@@ -19,7 +20,7 @@ include(ExternalProject)
 ExternalProject_Add(project_rist
         CONFIGURE_COMMAND ""
         GIT_REPOSITORY https://code.videolan.org/rist/librist.git
-        GIT_TAG 6c8ec93ce80d6e3114b443ad147d698e837ced87
+        GIT_TAG v0.2.0
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rist
         BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rist
         BUILD_COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/rist/build && cd ${CMAKE_CURRENT_SOURCE_DIR}/rist/build && meson .. --default-library=static && ninja

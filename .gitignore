@@ -1,8 +1,9 @@
-cmake-build-*/
 rist/
-cppRISTWrapper.cbp
-cppRISTWrapper
-cppRISTWrapper.exe
 libristnet.a
-libristnet.lib
 project_rist-prefix/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+compile_commands.json
+rist_cpp
