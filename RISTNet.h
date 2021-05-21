@@ -239,6 +239,9 @@ public:
   std::function<std::shared_ptr<NetworkConnection>(std::string lIPAddress, uint16_t lPort)>
       validateConnectionCallback = nullptr;
 
+  /// Callback handling disconnecting clients
+  std::function<void(const std::shared_ptr<NetworkConnection>&, const rist_peer&)> clientDisconnectedCallback = nullptr;
+
   // Delete copy and move constructors and assign operators
   RISTNetReceiver(RISTNetReceiver const &) = delete;             // Copy construct
   RISTNetReceiver(RISTNetReceiver &&) = delete;                  // Move construct
@@ -453,6 +456,9 @@ public:
    */
   std::function<std::shared_ptr<NetworkConnection>(std::string lIPAddress, uint16_t lPort)>
       validateConnectionCallback = nullptr;
+
+  /// Callback handling disconnecting clients
+  std::function<void(const std::shared_ptr<NetworkConnection>&, const rist_peer&)> clientDisconnectedCallback = nullptr;
 
   // Delete copy and move constructors and assign operators
   RISTNetSender(RISTNetSender const &) = delete;             // Copy construct
