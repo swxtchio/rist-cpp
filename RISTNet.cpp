@@ -153,12 +153,17 @@ int RISTNetReceiver::clientDisconnect(void *pArg, rist_peer *pPeer) {
         return 0;
     }
 
-    if (lWeakSelf->mClientList.find(pPeer) == lWeakSelf->mClientList.end()) {
+    auto netObj = lWeakSelf->mClientList.find(pPeer);
+    if (netObj == lWeakSelf->mClientList.end()) {
         LOGGER(true, LOGG_ERROR, "RISTNetReceiver::clientDisconnect unknown peer")
         return 0;
-    } else {
-        lWeakSelf->mClientList.erase(lWeakSelf->mClientList.find(pPeer)->first);
     }
+
+    if (lWeakSelf->clientDisconnectedCallback) {
+        lWeakSelf->clientDisconnectedCallback(netObj->second, *pPeer);
+    }
+
+    lWeakSelf->mClientList.erase(pPeer);
     return 0;
 }
 
@@ -424,12 +429,17 @@ int RISTNetSender::clientDisconnect(void *pArg, rist_peer *pPeer) {
         return 0;
     }
 
-    if (lWeakSelf->mClientList.find(pPeer) == lWeakSelf->mClientList.end()) {
+    auto netObj = lWeakSelf->mClientList.find(pPeer);
+    if (netObj == lWeakSelf->mClientList.end()) {
         LOGGER(true, LOGG_ERROR, "RISTNetSender::clientDisconnect unknown peer")
         return 0;
-    } else {
-        lWeakSelf->mClientList.erase(lWeakSelf->mClientList.find(pPeer)->first);
     }
+
+    if (lWeakSelf->clientDisconnectedCallback) {
+        lWeakSelf->clientDisconnectedCallback(netObj->second, *pPeer);
+    }
+
+    lWeakSelf->mClientList.erase(pPeer);
     return 0;
 }
 
