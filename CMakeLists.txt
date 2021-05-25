@@ -51,7 +51,7 @@ add_library(ristnet STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4hc.c
         ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/xxhash.c
         )
-target_link_libraries(ristnet rist Threads::Threads cm_mbedcrypto)
+target_link_libraries(ristnet rist Threads::Threads)
 
 add_executable(rist_cpp main.cpp)
 target_link_libraries(rist_cpp ristnet)
