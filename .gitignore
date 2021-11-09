@@ -7,3 +7,6 @@ Makefile
 cmake_install.cmake
 compile_commands.json
 rist_cpp
+*~
+runUnitTests
+CTestTestfile.cmake

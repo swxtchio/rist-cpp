@@ -355,7 +355,12 @@ public:
    *
    * Initialize the sender using the provided settings and parameters.
    *
-   * @param rURLList is a vector of RIST formated URL's
+   * @param rPeerList is a vector of RIST formated URLs and weights.
+   *        The weight is used for load balancing when using several interfaces. Transport is divided
+   *        between the interfaces in proportion to its weight. Use 0 to to duplicate all transport on
+   *        all interfaces.
+   *        Note that sending is skipping the first packet if weight=0,
+   *        see https://code.videolan.org/rist/librist/-/issues/135
    * @param The sender settings
    * @return true on success
    */

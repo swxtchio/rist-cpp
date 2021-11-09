@@ -33,10 +33,10 @@ bool RISTNetTools::buildRISTURL(const std::string &lIP, const std::string &lPort
         LOGGER(true, LOGG_ERROR, " " << "Provided IP-Address not valid.")
         return false;
     }
-    int lPortNum = 0;
+    int32_t lPortNum = 0;
     std::stringstream lPortNumStr(lPort);
     lPortNumStr >> lPortNum;
-    if (lPortNum < 1 || lPortNum > INT16_MAX) {
+    if (lPortNum < 1 || lPortNum > UINT16_MAX) {
         LOGGER(true, LOGG_ERROR, " " << "Provided Port number not valid.")
         return false;
     }
@@ -148,6 +148,7 @@ int RISTNetReceiver::clientConnect(void *pArg, const char* pConnectingIP, uint16
 
 int RISTNetReceiver::clientDisconnect(void *pArg, rist_peer *pPeer) {
     RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
+    // TODO: closeAllClientConnections/closeClientConnection already holds this lock se we are stuck here. See STAR-255.
     std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
     if (lWeakSelf->mClientList.empty()) {
         return 0;
