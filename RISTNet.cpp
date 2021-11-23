@@ -123,6 +123,7 @@ int RISTNetReceiver::receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock)
     if (lWeakSelf->networkOOBDataCallback) {  //This is a optional callback
         if (lWeakSelf->mClientListReceiver.empty()) {
             auto lEmptyContext = std::make_shared<NetworkConnection>(); //In this case we got no connections the NetworkConnection will contain a std::any == nullptr
+            lEmptyContext->mObject.reset();
             lWeakSelf->networkOOBDataCallback((const uint8_t *) pOOBBlock->payload, pOOBBlock->payload_len, lEmptyContext, pOOBBlock->peer);
             return 0;
         }
@@ -408,6 +409,7 @@ int RISTNetSender::receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock) {
     if (lWeakSelf->networkOOBDataCallback) {  //This is a optional callback
         if (lWeakSelf->mClientListSender.empty()) {
             auto lEmptyContext = std::make_shared<NetworkConnection>(); //In this case we got no connections the NetworkConnection will contain a std::any == nullptr
+            lEmptyContext->mObject.reset();
             lWeakSelf->networkOOBDataCallback((const uint8_t *) pOOBBlock->payload, pOOBBlock->payload_len, lEmptyContext, pOOBBlock->peer);
             return 0;
         }

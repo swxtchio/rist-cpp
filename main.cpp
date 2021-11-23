@@ -77,7 +77,15 @@ dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<RISTNetReceiver::
 
 void oobDataFromReceiver(const uint8_t *buf, size_t len, std::shared_ptr<RISTNetSender::NetworkConnection> &connection,
                          rist_peer *pPeer) {
-    std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
+
+    if (connection->mObject.has_value()) {
+        //You are the server so the connection has a Context
+        std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
+    } else {
+        //You are not the server so the connection does not have a context (meaning you connected to the server and the server sends OOB to you).
+        std::cout << "Got " << unsigned(len) << " bytes of oob data from the receiver" << std::endl;
+    }
+
 }
 
 void clientDisconnect(const std::shared_ptr<RISTNetReceiver::NetworkConnection>& connection, const rist_peer& peer) {
