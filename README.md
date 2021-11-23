@@ -12,7 +12,7 @@ The C++ wrapper of [librist](https://code.videolan.org/rist/librist) is creating
 ## Building
 
 
-Requires cmake version >= **3.10**, **C++17**, **meson** and **ninja**
+Requires cmake version >= **3.10**, **C++17**, **meson**, **ninja** and **googletest**
 
 The project is currently building on **Linux** and **MacOS**.
 

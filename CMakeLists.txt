@@ -45,7 +45,6 @@ set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4fra
 set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4hc.c PROPERTIES GENERATED TRUE)
 set_source_files_properties( ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/xxhash.c PROPERTIES GENERATED TRUE)
 
-link_directories(${CMAKE_SOURCE_DIR}/rist/build/subprojects/mbedtls-2.23.0)
 add_library(ristnet STATIC
         RISTNet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/rist/contrib/lz4/lz4.c
@@ -73,4 +72,4 @@ target_include_directories(runUnitTests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/test)
 
-target_link_libraries(runUnitTests ristnet GTest::GTest gtest_main)
+target_link_libraries(runUnitTests ristnet GTest::GTest GTest::gtest_main)

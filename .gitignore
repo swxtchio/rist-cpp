@@ -1,3 +1,5 @@
+.idea/
+/cmake-build*
 rist/
 libristnet.a
 project_rist-prefix/
