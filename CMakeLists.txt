@@ -72,4 +72,4 @@ target_include_directories(runUnitTests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/test)
 
-target_link_libraries(runUnitTests ristnet GTest::GTest GTest::gtest_main)
+target_link_libraries(runUnitTests ristnet GTest::GTest GTest::Main)
