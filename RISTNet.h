@@ -87,7 +87,7 @@ public:
      */
     class NetworkConnection {
     public:
-        std::any mObject; //Contains your object
+        std::any mObject = nullptr; //Contains your object
     };
 
 
@@ -254,7 +254,7 @@ private:
   int dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
-  static int receiveData(void *pArg, const rist_data_block *data_block);
+  static int receiveData(void *pArg, rist_data_block *data_block);
 
   // Private method receiving OOB data from librist C-API
   static int receiveOOBData(void *pArg, const rist_oob_block *pOOB_block);
@@ -275,7 +275,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientListReceiver;
 
   std::unique_ptr<rist_logging_settings, decltype(&free)> mLoggingScope{nullptr, &free};
 
@@ -311,7 +311,7 @@ public:
      */
     class NetworkConnection {
     public:
-        std::any mObject; //Contains your object
+        std::any mObject = nullptr; //Contains your object
     };
 
   struct RISTNetSenderSettings {
@@ -497,7 +497,7 @@ private:
   std::mutex mClientListMtx;
 
   // The list of connected clients
-  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientList;
+  std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientListSender;
 
   std::unique_ptr<rist_logging_settings, decltype(&free)> mLoggingScope{nullptr, &free};
 
