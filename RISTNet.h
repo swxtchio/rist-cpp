@@ -196,9 +196,6 @@ public:
    */
   static void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
-  //To be implemented
-  //void getInfo();
-
   /**
    * @brief Data receive callback
    *
@@ -242,6 +239,9 @@ public:
   /// Callback handling disconnecting clients
   std::function<void(const std::shared_ptr<NetworkConnection>&, const rist_peer&)> clientDisconnectedCallback = nullptr;
 
+  /// Callback for statistics, called once every second
+  std::function<void(const rist_stats& statistics)> statisticsCallback = nullptr;
+
   // Delete copy and move constructors and assign operators
   RISTNetReceiver(RISTNetReceiver const &) = delete;             // Copy construct
   RISTNetReceiver(RISTNetReceiver &&) = delete;                  // Move construct
@@ -265,11 +265,14 @@ private:
   // Private method called when a client disconnects
   static int clientDisconnect(void *pArg, rist_peer *pPeer);
 
+  // Private method called when a statistics are delivered
+  static int gotStatistics(void *pArg, const rist_stats *stats);
+
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
 
   // The configuration of the RIST receiver
-  rist_peer_config mRistPeerConfig = {0};
+  rist_peer_config mRistPeerConfig{};
 
   // The mutex protecting the list. since the list can be accessed from both librist and the C++ layer
   std::mutex mClientListMtx;
@@ -434,9 +437,6 @@ public:
    */
    static void getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint32_t &rRistMinor);
 
-  //To be implemented
-  //void getInfo();
-
   /**
    * @brief OOB Data receive callback (__NULLABLE)
    *
@@ -467,6 +467,9 @@ public:
   /// Callback handling disconnecting clients
   std::function<void(const std::shared_ptr<NetworkConnection>&, const rist_peer&)> clientDisconnectedCallback = nullptr;
 
+  /// Callback for statistics, called once every second
+  std::function<void(const rist_stats& statistics)> statisticsCallback = nullptr;
+
   // Delete copy and move constructors and assign operators
   RISTNetSender(RISTNetSender const &) = delete;             // Copy construct
   RISTNetSender(RISTNetSender &&) = delete;                  // Move construct
@@ -487,11 +490,14 @@ private:
   // Private method called when a client disconnects
   static int clientDisconnect(void *pArg, rist_peer *pPeer);
 
+  // Private method called when statistics are delivered
+  static int gotStatistics(void *pArg, const rist_stats *stats);
+
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;
 
   // The configuration of the RIST sender
-  rist_peer_config mRistPeerConfig = {0};
+  rist_peer_config mRistPeerConfig{};
 
   // The mutex protecting the list. since the list can be accessed from both librist and the C++ layer
   std::mutex mClientListMtx;

@@ -173,6 +173,14 @@ int RISTNetReceiver::clientDisconnect(void *pArg, rist_peer *pPeer) {
     return 0;
 }
 
+int RISTNetReceiver::gotStatistics(void *pArg, const rist_stats *stats) {
+    RISTNetReceiver *lWeakSelf = static_cast<RISTNetReceiver*>(pArg);
+    if (lWeakSelf->statisticsCallback) {
+        lWeakSelf->statisticsCallback(*stats);
+    }
+    return rist_stats_free(stats);
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 // RISTNetReceiver  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
@@ -333,6 +341,13 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         return false;
     }
 
+    lStatus = rist_stats_callback_set(mRistContext, 1000, gotStatistics, this);
+    if (lStatus) {
+        LOGGER(true, LOGG_ERROR, "rist_stats_callback_set fail.")
+        destroyReceiver();
+        return false;
+    }
+
     lStatus = rist_start(mRistContext);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_start fail.")
@@ -454,6 +469,14 @@ int RISTNetSender::clientDisconnect(void *pArg, rist_peer *pPeer) {
 
     lWeakSelf->mClientListSender.erase(pPeer);
     return 0;
+}
+
+int RISTNetSender::gotStatistics(void *pArg, const rist_stats *stats) {
+    RISTNetSender *lWeakSelf = static_cast<RISTNetSender*>(pArg);
+    if (lWeakSelf->statisticsCallback) {
+        lWeakSelf->statisticsCallback(*stats);
+    }
+    return rist_stats_free(stats);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -605,6 +628,13 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
     lStatus = rist_auth_handler_set(mRistContext, clientConnect, clientDisconnect, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_auth_handler_set fail.")
+        destroySender();
+        return false;
+    }
+
+    lStatus = rist_stats_callback_set(mRistContext, 1000, gotStatistics, this);
+    if (lStatus) {
+        LOGGER(true, LOGG_ERROR, "rist_stats_callback_set fail.")
         destroySender();
         return false;
     }
