@@ -213,12 +213,28 @@ TEST_F(TestFixture, SendReceive) {
         return 0;
     };
 
+    std::atomic<size_t> receiverStatisticCounter = 0;
+    mReceiver->statisticsCallback = [&](const rist_stats& stats) {
+        receiverStatisticCounter++;
+    };
+    std::atomic<size_t> senderStatisticCounter = 0;
+    mSender->statisticsCallback = [&](const rist_stats& stats) {
+        senderStatisticCounter++;
+    };
+
     std::vector<uint8_t> sendBuffer(kBufferSize);
     for (auto i = 0; i < kSentPackets; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         std::fill(sendBuffer.begin(), sendBuffer.end(), '0' + i);
         EXPECT_TRUE(mSender->sendData(static_cast<const uint8_t*>(sendBuffer.data()), sendBuffer.size()));
     }
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    size_t numCallsReceiver = receiverStatisticCounter;
+    EXPECT_GE(numCallsReceiver, 9) << "Expected the statistics to be delivered at least 9 times for receiver";
+    size_t numCallsSender = senderStatisticCounter;
+    EXPECT_GE(numCallsSender, 9) << "Expected the statistics to be delivered at least 9 times for sender";
 
     {
         std::unique_lock<std::mutex> lock(receiverMutex);
