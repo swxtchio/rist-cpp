@@ -30,6 +30,7 @@ ExternalProject_Add(project_rist
         STEP_TARGETS build
         EXCLUDE_FROM_ALL TRUE
         INSTALL_COMMAND ""
+        BUILD_BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/rist/build/librist.a
         )
 
 add_library(rist STATIC IMPORTED)
