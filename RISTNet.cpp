@@ -112,7 +112,7 @@ int RISTNetReceiver::receiveData(void *pArg, rist_data_block *pDataBlock) {
     if (netObj != lWeakSelf->mClientListReceiver.end()) {
         auto netCon = netObj->second;
         auto retVal = lWeakSelf->networkDataCallback((const uint8_t *) pDataBlock->payload, pDataBlock->payload_len, netCon, pDataBlock->peer, pDataBlock->flow_id);
-	    rist_receiver_data_block_free2(&pDataBlock);
+        rist_receiver_data_block_free2(&pDataBlock);
         return retVal;
     } else {
         LOGGER(true, LOGG_ERROR, "receivesendDataData mClientListReceiver <-> peer mismatch.")
