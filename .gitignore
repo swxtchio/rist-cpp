@@ -12,3 +12,4 @@ rist_cpp
 *~
 runUnitTests
 CTestTestfile.cmake
+build/

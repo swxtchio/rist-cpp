@@ -108,12 +108,13 @@ public:
           mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES;
           mPeerConfig.weight = 5;
           mPeerConfig.session_timeout = RIST_DEFAULT_SESSION_TIMEOUT;
+          mLogSetting = std::make_shared<rist_logging_settings>(rist_logging_settings LOGGING_SETTINGS_INITIALIZER);
       }
     rist_profile mProfile = RIST_PROFILE_MAIN;
     rist_peer_config mPeerConfig;
 
     rist_log_level mLogLevel = RIST_LOG_ERROR;
-    std::unique_ptr<rist_logging_settings> mLogSetting;
+    std::shared_ptr<rist_logging_settings> mLogSetting;
     std::string mPSK;
     std::string mCNAME;
     int mSessionTimeout = 5000;
@@ -334,12 +335,13 @@ public:
           mPeerConfig.max_retries = RIST_DEFAULT_MAX_RETRIES;
           mPeerConfig.weight = 5;
           mPeerConfig.session_timeout = RIST_DEFAULT_SESSION_TIMEOUT;
+          mLogSetting = std::make_shared<rist_logging_settings>(rist_logging_settings LOGGING_SETTINGS_INITIALIZER);
       };
     rist_profile mProfile = RIST_PROFILE_MAIN;
     rist_peer_config mPeerConfig;
 
     rist_log_level mLogLevel = RIST_LOG_ERROR;
-    std::unique_ptr<rist_logging_settings> mLogSetting;
+    std::shared_ptr<rist_logging_settings> mLogSetting;
     std::string mPSK;
     std::string mCNAME;
     uint32_t mSessionTimeout = 5000;
