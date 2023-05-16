@@ -108,6 +108,13 @@ int RISTNetReceiver::receiveData(void *pArg, rist_data_block *pDataBlock) {
     RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
     std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
 
+    if (lWeakSelf->mClientListReceiver.empty()) {
+        auto lEmptyContext = std::make_shared<NetworkConnection>();
+        lEmptyContext->mObject.reset();
+        auto retVal = lWeakSelf->networkDataCallback((const uint8_t *) pDataBlock->payload, pDataBlock->payload_len, lEmptyContext, pDataBlock->peer, pDataBlock->flow_id);
+        rist_receiver_data_block_free2(&pDataBlock);
+        return retVal;
+    }
     auto netObj = lWeakSelf->mClientListReceiver.find(pDataBlock->peer);
     if (netObj != lWeakSelf->mClientListReceiver.end()) {
         auto netCon = netObj->second;
