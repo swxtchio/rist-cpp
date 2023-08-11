@@ -260,7 +260,6 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
     // Default log settings
     rist_logging_settings* lSettingsPtr = rSettings.mLogSetting.get();
     lStatus = rist_logging_set(&lSettingsPtr, rSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
-    mLoggingScope.reset(lSettingsPtr);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_logging_set failed.")
         return false;
@@ -556,7 +555,6 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
     // Default log settings
     rist_logging_settings* lSettingsPtr = rSettings.mLogSetting.get();
     lStatus = rist_logging_set(&lSettingsPtr, rSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
-    mLoggingScope.reset(lSettingsPtr);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_logging_set failed.")
         return false;
