@@ -142,6 +142,15 @@ public:
                     RISTNetReceiverSettings &rSettings);
 
   /**
+   * @brief Get peer config
+   *
+   * Get config set to the last connected peer.
+   *
+   * @return pointer to peer config
+   */
+  rist_peer_config* getPeerConfig();
+
+  /**
    * @brief Map of all active connections
    *
    * Get a map of all connected clients
@@ -276,7 +285,7 @@ private:
   rist_peer_config mRistPeerConfig{};
 
   // The mutex protecting the list. since the list can be accessed from both librist and the C++ layer
-  std::mutex mClientListMtx;
+  std::recursive_mutex mClientListMtx;
 
   // The list of connected clients
   std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientListReceiver;
@@ -368,6 +377,15 @@ public:
    */
   bool initSender(std::vector<std::tuple<std::string, int>> &rPeerList,
                   RISTNetSenderSettings &rSettings);
+
+  /**
+   * @brief Get peer config
+   *
+   * Get config set to the last connected peer.
+   *
+   * @return pointer to peer config
+   */
+  rist_peer_config* getPeerConfig();
 
   /**
    * @brief Map of all active connections
@@ -499,7 +517,7 @@ private:
   rist_peer_config mRistPeerConfig{};
 
   // The mutex protecting the list. since the list can be accessed from both librist and the C++ layer
-  std::mutex mClientListMtx;
+  std::recursive_mutex mClientListMtx;
 
   // The list of connected clients
   std::map<rist_peer *, std::shared_ptr<NetworkConnection>> mClientListSender;
