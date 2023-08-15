@@ -106,7 +106,7 @@ int RISTNetReceiver::dataFromClientStub(const uint8_t *pBuf, size_t lSize,
 
 int RISTNetReceiver::receiveData(void *pArg, rist_data_block *pDataBlock) {
     RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
-    std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
 
     if (lWeakSelf->mClientListReceiver.empty()) {
         auto lEmptyContext = std::make_shared<NetworkConnection>();
@@ -136,7 +136,7 @@ int RISTNetReceiver::receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock)
             lWeakSelf->networkOOBDataCallback((const uint8_t *) pOOBBlock->payload, pOOBBlock->payload_len, lEmptyContext, pOOBBlock->peer);
             return 0;
         }
-        std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+        std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
         auto netObj = lWeakSelf->mClientListReceiver.find(pOOBBlock->peer);
         if (netObj != lWeakSelf->mClientListReceiver.end()) {
             auto netCon = netObj->second;
@@ -152,7 +152,7 @@ int RISTNetReceiver::clientConnect(void *pArg, const char* pConnectingIP, uint16
     RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
     auto lNetObj = lWeakSelf->validateConnectionCallback(std::string(pConnectingIP), lConnectingPort);
     if (lNetObj) {
-        std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+        std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
 
         lWeakSelf->mClientListReceiver[pPeer] = lNetObj;
         return 0; // Accept the connection
@@ -162,8 +162,7 @@ int RISTNetReceiver::clientConnect(void *pArg, const char* pConnectingIP, uint16
 
 int RISTNetReceiver::clientDisconnect(void *pArg, rist_peer *pPeer) {
     RISTNetReceiver *lWeakSelf = (RISTNetReceiver *) pArg;
-    // TODO: closeAllClientConnections/closeClientConnection already holds this lock se we are stuck here. See STAR-255.
-    std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
     if (lWeakSelf->mClientListReceiver.empty()) {
         return 0;
     }
@@ -196,7 +195,7 @@ int RISTNetReceiver::gotStatistics(void *pArg, const rist_stats *stats) {
 
 void RISTNetReceiver::getActiveClients(
         std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
-    std::lock_guard<std::mutex> lLock(mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
 
     if (lFunction) {
         lFunction(mClientListReceiver);
@@ -204,13 +203,12 @@ void RISTNetReceiver::getActiveClients(
 }
 
 bool RISTNetReceiver::closeClientConnection(rist_peer *lPeer) {
-    std::lock_guard<std::mutex> lLock(mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
     auto netObj = mClientListReceiver.find(lPeer);
     if (netObj == mClientListReceiver.end()) {
         LOGGER(true, LOGG_ERROR, "Could not find peer")
         return false;
     }
-    mClientListReceiver.erase(lPeer);
     int lStatus = rist_peer_destroy(mRistContext, lPeer);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_peer_destroy failed: ")
@@ -220,22 +218,26 @@ bool RISTNetReceiver::closeClientConnection(rist_peer *lPeer) {
 }
 
 void RISTNetReceiver::closeAllClientConnections() {
-    std::lock_guard<std::mutex> lLock(mClientListMtx);
-    for (auto &rPeer: mClientListReceiver) {
-        rist_peer *lPeer = rPeer.first;
+    std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
+    for (auto it = mClientListReceiver.cbegin(); it != mClientListReceiver.cend(); ) {
+        rist_peer *lPeer = it->first;
+        // BUG -> if I erase the peer here, the corresponding disconnectCB won't be called
+        // but if I erase the peer in clientDisconnect, it will corrupt this iteration
+        // TODO: possible solution, get static list of peers and call destroy on each one?
+        // without iterating a map that is being modified at the same time
+        it = mClientListReceiver.erase(it);
         int lStatus = rist_peer_destroy(mRistContext, lPeer);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_peer_destroy failed: ")
         }
     }
-    mClientListReceiver.clear();
 }
 
 bool RISTNetReceiver::destroyReceiver() {
     if (mRistContext) {
         int lStatus = rist_destroy(mRistContext);
         mRistContext = nullptr;
-        std::lock_guard<std::mutex> lLock(mClientListMtx);
+        std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
         mClientListReceiver.clear();
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_destroy fail.")
@@ -391,6 +393,10 @@ void RISTNetReceiver::getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, ui
     rRistMinor = LIBRIST_API_VERSION_MINOR;
 }
 
+rist_peer_config* RISTNetReceiver::getPeerConfig() {
+    return &mRistPeerConfig;
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 //
 //
@@ -436,7 +442,7 @@ int RISTNetSender::receiveOOBData(void *pArg, const rist_oob_block *pOOBBlock) {
             lWeakSelf->networkOOBDataCallback((const uint8_t *) pOOBBlock->payload, pOOBBlock->payload_len, lEmptyContext, pOOBBlock->peer);
             return 0;
         }
-        std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+        std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
         auto netObj = lWeakSelf->mClientListSender.find(pOOBBlock->peer);
         if (netObj != lWeakSelf->mClientListSender.end()) {
             auto netCon = netObj->second;
@@ -451,7 +457,7 @@ int RISTNetSender::clientConnect(void *pArg, const char* pConnectingIP, uint16_t
     RISTNetSender *lWeakSelf = (RISTNetSender *) pArg;
     auto lNetObj = lWeakSelf->validateConnectionCallback(std::string(pConnectingIP), lConnectingPort);
     if (lNetObj) {
-        std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+        std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
         lWeakSelf->mClientListSender[pPeer] = lNetObj;
         return 0; // Accept the connection
     }
@@ -460,7 +466,7 @@ int RISTNetSender::clientConnect(void *pArg, const char* pConnectingIP, uint16_t
 
 int RISTNetSender::clientDisconnect(void *pArg, rist_peer *pPeer) {
     RISTNetSender *lWeakSelf = (RISTNetSender *) pArg;
-    std::lock_guard<std::mutex> lLock(lWeakSelf->mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(lWeakSelf->mClientListMtx);
     if (lWeakSelf->mClientListSender.empty()) {
         return 0;
     }
@@ -493,20 +499,19 @@ int RISTNetSender::gotStatistics(void *pArg, const rist_stats *stats) {
 
 void RISTNetSender::getActiveClients(
         const std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
-    std::lock_guard<std::mutex> lLock(mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
     if (lFunction) {
         lFunction(mClientListSender);
     }
 }
 
 bool RISTNetSender::closeClientConnection(rist_peer *lPeer) {
-    std::lock_guard<std::mutex> lLock(mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
     auto netObj = mClientListSender.find(lPeer);
     if (netObj == mClientListSender.end()) {
         LOGGER(true, LOGG_ERROR, "Could not find peer")
         return false;
     }
-    mClientListSender.erase(lPeer);
     int lStatus = rist_peer_destroy(mRistContext, lPeer);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_peer_destroy failed: ")
@@ -516,8 +521,11 @@ bool RISTNetSender::closeClientConnection(rist_peer *lPeer) {
 }
 
 void RISTNetSender::closeAllClientConnections() {
-    std::lock_guard<std::mutex> lLock(mClientListMtx);
+    std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
     for (auto &rPeer: mClientListSender) {
+        // BUG -> this iteration will get corrupted with the erasing of the peer in clientDisconnect
+        // TODO: possible solution, get static list of peers and call destroy on each one?
+        // without iterating a map that is being modified at the same time
         rist_peer *pPeer = rPeer.first;
         int status = rist_peer_destroy(mRistContext, pPeer);
         if (status) {
@@ -531,7 +539,7 @@ bool RISTNetSender::destroySender() {
     if (mRistContext) {
         int lStatus = rist_destroy(mRistContext);
         mRistContext = nullptr;
-        std::lock_guard<std::mutex> lLock(mClientListMtx);
+        std::lock_guard<std::recursive_mutex> lLock(mClientListMtx);
         mClientListSender.clear();
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_sender_destroy fail.")
@@ -706,4 +714,8 @@ void RISTNetSender::getVersion(uint32_t &rCppWrapper, uint32_t &rRistMajor, uint
     rCppWrapper = CPP_WRAPPER_VERSION;
     rRistMajor = LIBRIST_API_VERSION_MAJOR;
     rRistMinor = LIBRIST_API_VERSION_MINOR;
+}
+
+rist_peer_config* RISTNetSender::getPeerConfig() {
+    return &mRistPeerConfig;
 }
