@@ -216,7 +216,7 @@ public:
    * @param function getting data from the sender.
    * @return 0 to keep the connection else -1.
    */
-  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer, uint16_t lConnectionID)>
+  std::function<int(rist_data_block pkt, std::shared_ptr<NetworkConnection> &rConnection)>
       networkDataCallback = nullptr;
 
   /**
@@ -261,7 +261,7 @@ public:
 private:
 
   std::shared_ptr<NetworkConnection> validateConnectionStub(std::string lIPAddress, uint16_t lPort);
-  int dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
+  int dataFromClientStub(rist_data_block pkt, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
   static int receiveData(void *pArg, rist_data_block *data_block);
