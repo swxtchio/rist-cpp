@@ -425,6 +425,16 @@ public:
   bool sendData(const uint8_t *pData, size_t lSize, uint16_t lConnectionID=0);
 
   /**
+   * @brief Send pkt
+   *
+   * Sends a pkt to the connected peers
+   *
+   * @param pkt pkt to send
+   *
+   */
+  bool sendPkt(const rist_data_block pkt);
+
+  /**
   * @brief Send OOB data (Currently not working in librist)
   *
   * Sends OOB data to the specified peer

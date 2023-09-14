@@ -690,6 +690,27 @@ bool RISTNetSender::sendData(const uint8_t *pData, size_t lSize, uint16_t lConne
     return true;
 }
 
+bool RISTNetSender::sendPkt(const rist_data_block pkt) {
+    if (!mRistContext) {
+        LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
+        return false;
+    }
+
+    int lStatus = rist_sender_data_write(mRistContext, &pkt);
+    if (lStatus < 0) {
+        LOGGER(true, LOGG_ERROR, "rist_client_write failed.")
+        destroySender();
+        return false;
+    }
+
+    if (lStatus != pkt.payload_len) {
+        LOGGER(true, LOGG_ERROR, "Did send " << lStatus << " bytes, out of " << lSize << " bytes." )
+        return false;
+    }
+
+    return true;
+}
+
 bool RISTNetSender::sendOOBData(rist_peer *pPeer, const uint8_t *pData, size_t lSize) {
     if (!mRistContext) {
         LOGGER(true, LOGG_ERROR, "RISTNetSender not initialised.")
