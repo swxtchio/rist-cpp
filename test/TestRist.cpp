@@ -199,11 +199,11 @@ TEST_F(TestFixture, SendReceive) {
     std::condition_variable receiverCondition;
     std::mutex receiverMutex;
     uint16_t nReceivedPackets = 0;
-    mReceiver->networkDataCallback = [&](rist_data_block pkt,
-                                         std::shared_ptr<RISTNetReceiver::NetworkConnection>& connection) {
+    mReceiver->networkDataCallback = [&](const uint8_t* buf, size_t size,
+                                         std::shared_ptr<RISTNetReceiver::NetworkConnection>& connection,
+                                         rist_peer* peer, uint16_t connectionId) {
         EXPECT_EQ(connection, mReceiverCtx);
-        EXPECT_EQ(pkt.payload_len, kBufferSize);
-        auto buf = (const uint8_t*) pkt.payload;
+        EXPECT_EQ(size, kBufferSize);
         {
             std::lock_guard<std::mutex> lock(receiverMutex);
             EXPECT_EQ(*buf, '0' + nReceivedPackets);
