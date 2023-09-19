@@ -216,8 +216,19 @@ public:
    * @param function getting data from the sender.
    * @return 0 to keep the connection else -1.
    */
-  std::function<int(rist_data_block pkt, std::shared_ptr<NetworkConnection> &rConnection)>
+  std::function<int(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection, rist_peer *pPeer, uint16_t lConnectionID)>
       networkDataCallback = nullptr;
+
+  /**
+   * @brief Packet receive callback
+   *
+   * Same as networkDataCallback but for receiving the whole rist packet, including timestamp, seq number, etc...
+   *
+   * @param function getting data from the sender.
+   * @return 0 to keep the connection else -1.
+   */
+  std::function<int(rist_data_block pkt, std::shared_ptr<NetworkConnection> &rConnection)>
+      receivePktCallback = nullptr;
 
   /**
    * @brief OOB Data receive callback (__NULLABLE)
@@ -261,7 +272,7 @@ public:
 private:
 
   std::shared_ptr<NetworkConnection> validateConnectionStub(std::string lIPAddress, uint16_t lPort);
-  int dataFromClientStub(rist_data_block pkt, std::shared_ptr<NetworkConnection> &rConnection);
+  int dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
   static int receiveData(void *pArg, rist_data_block *data_block);

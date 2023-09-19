@@ -48,9 +48,8 @@ std::shared_ptr<RISTNetReceiver::NetworkConnection> validateConnection(const std
 }
 
 int
-dataFromSender(rist_data_block pkt, std::shared_ptr<RISTNetReceiver::NetworkConnection> &connection) {
-    auto buf = (const uint8_t*) pkt.payload;
-    auto len = pkt.payload_len;
+dataFromSender(const uint8_t *buf, size_t len, std::shared_ptr<RISTNetReceiver::NetworkConnection> &connection,
+               rist_peer *pPeer, uint16_t connectionID) {
     //Get back your class like this ->
     if (connection) {
         auto v = std::any_cast<std::shared_ptr<MyClass> &>(connection->mObject);
@@ -69,7 +68,7 @@ dataFromSender(rist_data_block pkt, std::shared_ptr<RISTNetReceiver::NetworkConn
         std::cout << "Did not receive the correct data" << std::endl;
         packetCounter++;
     } else {
-        std::cout << "Got " << unsigned(len) << " expected data from connection id: " << unsigned(pkt.flow_id)
+        std::cout << "Got " << unsigned(len) << " expected data from connection id: " << unsigned(connectionID)
                   << std::endl;
     }
 
@@ -120,7 +119,8 @@ int main() {
             std::bind(&validateConnection, std::placeholders::_1, std::placeholders::_2);
     //receive data from the client
     myRISTNetReceiver.networkDataCallback =
-            std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2);
+            std::bind(&dataFromSender, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                      std::placeholders::_4, std::placeholders::_5);
     // client has disconnected
     myRISTNetReceiver.clientDisconnectedCallback =
         std::bind(&clientDisconnect, std::placeholders::_1, std::placeholders::_2);
