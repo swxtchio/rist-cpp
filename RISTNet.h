@@ -119,9 +119,9 @@ public:
     std::string mCNAME;
     int mSessionTimeout = 5000;
     int mKeepAliveInterval = 10000;
-    int mMaxjitter = 0;
+    int mMaxJitter = 0;
 
-  };
+  } mRistReceiverSettings;
 
   /// Constructor
   RISTNetReceiver();
@@ -364,7 +364,7 @@ public:
     uint32_t mSessionTimeout = 5000;
     uint32_t mKeepAliveInterval = 10000;
     int mMaxJitter = 0;
-   };
+   } mRistSenderSettings;
 
   /// Constructor
   RISTNetSender();
