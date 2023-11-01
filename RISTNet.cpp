@@ -265,51 +265,63 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         LOGGER(true, LOGG_ERROR, "URL list is empty.")
         return false;
     }
+    // I need the settings struct to be a member of RISTNet class, because when being destructed
+    // there can be a segfault if the struct is deallocated before destroying all RIST environment.
+    // That can happen if the settings struct used belongs to an upper class or is created as a heap
+    // or stack variable.
+    mRistReceiverSettings.mLogLevel = rSettings.mLogLevel;
+    mRistReceiverSettings.mPeerConfig = rSettings.mPeerConfig;
+    mRistReceiverSettings.mProfile = rSettings.mProfile;
+    mRistReceiverSettings.mPSK = rSettings.mPSK;
+    mRistReceiverSettings.mCNAME = rSettings.mCNAME;
+    mRistReceiverSettings.mSessionTimeout = rSettings.mSessionTimeout;
+    mRistReceiverSettings.mKeepAliveInterval = rSettings.mKeepAliveInterval;
+    mRistReceiverSettings.mMaxJitter = rSettings.mMaxJitter;
 
     int lStatus;
 
     // Default log settings
-    rist_logging_settings* lSettingsPtr = rSettings.mLogSetting.get();
-    lStatus = rist_logging_set(&lSettingsPtr, rSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
+    rist_logging_settings* lSettingsPtr = mRistReceiverSettings.mLogSetting.get();
+    lStatus = rist_logging_set(&lSettingsPtr, mRistReceiverSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_logging_set failed.")
         return false;
     }
 
 
-    lStatus = rist_receiver_create(&mRistContext, rSettings.mProfile, rSettings.mLogSetting.get());
+    lStatus = rist_receiver_create(&mRistContext, mRistReceiverSettings.mProfile, mRistReceiverSettings.mLogSetting.get());
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_create fail.")
         return false;
     }
     for (auto &rURL: rURLList) {
         int keysize = 0;
-        if (!rSettings.mPSK.empty()) {
+        if (!mRistReceiverSettings.mPSK.empty()) {
             keysize = 128;
         }
         mRistPeerConfig.version = RIST_PEER_CONFIG_VERSION;
         mRistPeerConfig.virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT;
-        mRistPeerConfig.recovery_mode = rSettings.mPeerConfig.recovery_mode;
-        mRistPeerConfig.recovery_maxbitrate = rSettings.mPeerConfig.recovery_maxbitrate;
-        mRistPeerConfig.recovery_maxbitrate_return = rSettings.mPeerConfig.recovery_maxbitrate_return;
-        mRistPeerConfig.recovery_length_min = rSettings.mPeerConfig.recovery_length_min;
-        mRistPeerConfig.recovery_length_max = rSettings.mPeerConfig.recovery_length_max;
-        mRistPeerConfig.recovery_rtt_min = rSettings.mPeerConfig.recovery_rtt_min;
-        mRistPeerConfig.recovery_rtt_max = rSettings.mPeerConfig.recovery_rtt_max;
+        mRistPeerConfig.recovery_mode = mRistReceiverSettings.mPeerConfig.recovery_mode;
+        mRistPeerConfig.recovery_maxbitrate = mRistReceiverSettings.mPeerConfig.recovery_maxbitrate;
+        mRistPeerConfig.recovery_maxbitrate_return = mRistReceiverSettings.mPeerConfig.recovery_maxbitrate_return;
+        mRistPeerConfig.recovery_length_min = mRistReceiverSettings.mPeerConfig.recovery_length_min;
+        mRistPeerConfig.recovery_length_max = mRistReceiverSettings.mPeerConfig.recovery_length_max;
+        mRistPeerConfig.recovery_rtt_min = mRistReceiverSettings.mPeerConfig.recovery_rtt_min;
+        mRistPeerConfig.recovery_rtt_max = mRistReceiverSettings.mPeerConfig.recovery_rtt_max;
         mRistPeerConfig.weight = 5;
-        mRistPeerConfig.congestion_control_mode = rSettings.mPeerConfig.congestion_control_mode;
-        mRistPeerConfig.min_retries = rSettings.mPeerConfig.min_retries;
-        mRistPeerConfig.max_retries = rSettings.mPeerConfig.max_retries;
-        mRistPeerConfig.session_timeout = rSettings.mSessionTimeout;
-        mRistPeerConfig.keepalive_interval =  rSettings.mKeepAliveInterval;
+        mRistPeerConfig.congestion_control_mode = mRistReceiverSettings.mPeerConfig.congestion_control_mode;
+        mRistPeerConfig.min_retries = mRistReceiverSettings.mPeerConfig.min_retries;
+        mRistPeerConfig.max_retries = mRistReceiverSettings.mPeerConfig.max_retries;
+        mRistPeerConfig.session_timeout = mRistReceiverSettings.mSessionTimeout;
+        mRistPeerConfig.keepalive_interval =  mRistReceiverSettings.mKeepAliveInterval;
         mRistPeerConfig.key_size = keysize;
 
         if (keysize) {
-            strncpy((char *) &mRistPeerConfig.secret[0], rSettings.mPSK.c_str(), 128);
+            strncpy((char *) &mRistPeerConfig.secret[0], mRistReceiverSettings.mPSK.c_str(), 128);
         }
 
-        if (!rSettings.mCNAME.empty()) {
-            strncpy((char *) &mRistPeerConfig.cname[0], rSettings.mCNAME.c_str(), 128);
+        if (!mRistReceiverSettings.mCNAME.empty()) {
+            strncpy((char *) &mRistPeerConfig.cname[0], mRistReceiverSettings.mCNAME.c_str(), 128);
         }
 
         rist_peer_config* lTmp = &mRistPeerConfig;
@@ -330,8 +342,8 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         }
     }
 
-    if (rSettings.mMaxjitter) {
-        lStatus = rist_jitter_max_set(mRistContext, rSettings.mMaxjitter);
+    if (mRistReceiverSettings.mMaxJitter) {
+        lStatus = rist_jitter_max_set(mRistContext, mRistReceiverSettings.mMaxJitter);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_jitter_max_set fail.")
             destroyReceiver();
@@ -567,17 +579,29 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         LOGGER(true, LOGG_ERROR, "URL list is empty.")
         return false;
     }
+    // I need the settings struct to be a member of RISTNet class, because when being destructed
+    // there can be a segfault if the struct is deallocated before destroying all RIST environment.
+    // That can happen if the settings struct used belongs to an upper class or is created as a heap
+    // or stack variable.
+    mRistSenderSettings.mLogLevel = rSettings.mLogLevel;
+    mRistSenderSettings.mPeerConfig = rSettings.mPeerConfig;
+    mRistSenderSettings.mProfile = rSettings.mProfile;
+    mRistSenderSettings.mPSK = rSettings.mPSK;
+    mRistSenderSettings.mCNAME = rSettings.mCNAME;
+    mRistSenderSettings.mSessionTimeout = rSettings.mSessionTimeout;
+    mRistSenderSettings.mKeepAliveInterval = rSettings.mKeepAliveInterval;
+    mRistSenderSettings.mMaxJitter = rSettings.mMaxJitter;
 
     int lStatus;
     // Default log settings
-    rist_logging_settings* lSettingsPtr = rSettings.mLogSetting.get();
-    lStatus = rist_logging_set(&lSettingsPtr, rSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
+    rist_logging_settings* lSettingsPtr = mRistSenderSettings.mLogSetting.get();
+    lStatus = rist_logging_set(&lSettingsPtr, mRistSenderSettings.mLogLevel, nullptr, nullptr, nullptr, stderr);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_logging_set failed.")
         return false;
     }
 
-    lStatus = rist_sender_create(&mRistContext, rSettings.mProfile, 0, rSettings.mLogSetting.get());
+    lStatus = rist_sender_create(&mRistContext, mRistSenderSettings.mProfile, 0, mRistSenderSettings.mLogSetting.get());
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_sender_create fail.")
         return false;
@@ -587,32 +611,32 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         auto peerURL = std::get<0>(rPeerInfo);
 
         int keysize = 0;
-        if (!rSettings.mPSK.empty()) {
+        if (!mRistSenderSettings.mPSK.empty()) {
             keysize = 128;
         }
         mRistPeerConfig.version = RIST_PEER_CONFIG_VERSION;
         mRistPeerConfig.virt_dst_port = RIST_DEFAULT_VIRT_DST_PORT;
-        mRistPeerConfig.recovery_mode = rSettings.mPeerConfig.recovery_mode;
-        mRistPeerConfig.recovery_maxbitrate = rSettings.mPeerConfig.recovery_maxbitrate;
-        mRistPeerConfig.recovery_maxbitrate_return = rSettings.mPeerConfig.recovery_maxbitrate_return;
-        mRistPeerConfig.recovery_length_min = rSettings.mPeerConfig.recovery_length_min;
-        mRistPeerConfig.recovery_length_max = rSettings.mPeerConfig.recovery_length_max;
-        mRistPeerConfig.recovery_rtt_min = rSettings.mPeerConfig.recovery_rtt_min;
-        mRistPeerConfig.recovery_rtt_max = rSettings.mPeerConfig.recovery_rtt_max;
+        mRistPeerConfig.recovery_mode = mRistSenderSettings.mPeerConfig.recovery_mode;
+        mRistPeerConfig.recovery_maxbitrate = mRistSenderSettings.mPeerConfig.recovery_maxbitrate;
+        mRistPeerConfig.recovery_maxbitrate_return = mRistSenderSettings.mPeerConfig.recovery_maxbitrate_return;
+        mRistPeerConfig.recovery_length_min = mRistSenderSettings.mPeerConfig.recovery_length_min;
+        mRistPeerConfig.recovery_length_max = mRistSenderSettings.mPeerConfig.recovery_length_max;
+        mRistPeerConfig.recovery_rtt_min = mRistSenderSettings.mPeerConfig.recovery_rtt_min;
+        mRistPeerConfig.recovery_rtt_max = mRistSenderSettings.mPeerConfig.recovery_rtt_max;
         mRistPeerConfig.weight = std::get<1>(rPeerInfo);
-        mRistPeerConfig.congestion_control_mode = rSettings.mPeerConfig.congestion_control_mode;
-        mRistPeerConfig.min_retries = rSettings.mPeerConfig.min_retries;
-        mRistPeerConfig.max_retries = rSettings.mPeerConfig.max_retries;
-        mRistPeerConfig.session_timeout = rSettings.mSessionTimeout;
-        mRistPeerConfig.keepalive_interval =  rSettings.mKeepAliveInterval;
+        mRistPeerConfig.congestion_control_mode = mRistSenderSettings.mPeerConfig.congestion_control_mode;
+        mRistPeerConfig.min_retries = mRistSenderSettings.mPeerConfig.min_retries;
+        mRistPeerConfig.max_retries = mRistSenderSettings.mPeerConfig.max_retries;
+        mRistPeerConfig.session_timeout = mRistSenderSettings.mSessionTimeout;
+        mRistPeerConfig.keepalive_interval =  mRistSenderSettings.mKeepAliveInterval;
         mRistPeerConfig.key_size = keysize;
 
         if (keysize) {
-            strncpy((char *) &mRistPeerConfig.secret[0], rSettings.mPSK.c_str(), 128);
+            strncpy((char *) &mRistPeerConfig.secret[0], mRistSenderSettings.mPSK.c_str(), 128);
         }
 
-        if (!rSettings.mCNAME.empty()) {
-            strncpy((char *) &mRistPeerConfig.cname[0], rSettings.mCNAME.c_str(), 128);
+        if (!mRistSenderSettings.mCNAME.empty()) {
+            strncpy((char *) &mRistPeerConfig.cname[0], mRistSenderSettings.mCNAME.c_str(), 128);
         }
 
         rist_peer_config* lTmp = &mRistPeerConfig;
@@ -633,8 +657,8 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
         }
     }
 
-    if (rSettings.mMaxJitter) {
-        lStatus = rist_jitter_max_set(mRistContext, rSettings.mMaxJitter);
+    if (mRistSenderSettings.mMaxJitter) {
+        lStatus = rist_jitter_max_set(mRistContext, mRistSenderSettings.mMaxJitter);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_sender_jitter_max_set fail.")
             destroySender();
