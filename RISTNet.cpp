@@ -713,7 +713,7 @@ bool RISTNetSender::sendPkt(const rist_data_block pkt) {
     }
 
     if (lStatus != pkt.payload_len) {
-        LOGGER(true, LOGG_ERROR, "Did send " << lStatus << " bytes, out of " << lSize << " bytes." )
+        LOGGER(true, LOGG_ERROR, "Did send " << lStatus << " bytes, out of " << pkt.payload_len << " bytes." )
         return false;
     }
 
