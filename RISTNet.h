@@ -231,6 +231,17 @@ public:
       receivePktCallback = nullptr;
 
   /**
+   * @brief Packet receive callback (const version)
+   *
+   * Same as networkDataCallback but for receiving the whole rist packet, including timestamp, seq number, etc...
+   *
+   * @param function getting data from the sender.
+   * @return 0 to keep the connection else -1.
+   */
+  std::function<int(const rist_data_block *pkt, const std::shared_ptr<NetworkConnection> &rConnection)>
+      receiveCallback = nullptr;
+
+  /**
    * @brief OOB Data receive callback (__NULLABLE)
    *
    * When receiving data from the sender this function is called.
