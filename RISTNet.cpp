@@ -112,10 +112,12 @@ int RISTNetReceiver::receiveData(void *pArg, rist_data_block *pDataBlock) {
     if (lWeakSelf->mClientListReceiver.empty()) {
         auto lEmptyContext = std::make_shared<NetworkConnection>();
         lEmptyContext->mObject.reset();
-        if (lWeakSelf->receivePktCallback == nullptr) {
+        if (lWeakSelf->receivePktCallback == nullptr && lWeakSelf->receiveCallback == nullptr) {
             retVal = lWeakSelf->networkDataCallback((const uint8_t *) pDataBlock->payload, pDataBlock->payload_len, lEmptyContext, pDataBlock->peer, pDataBlock->flow_id);
-        } else {
+        } else if (lWeakSelf->receiveCallback == nullptr){
             retVal = lWeakSelf->receivePktCallback(*pDataBlock, lEmptyContext);
+        } else {
+            retVal = lWeakSelf->receiveCallback(pDataBlock, lEmptyContext);
         }
         rist_receiver_data_block_free2(&pDataBlock);
         return retVal;
@@ -123,10 +125,12 @@ int RISTNetReceiver::receiveData(void *pArg, rist_data_block *pDataBlock) {
     auto netObj = lWeakSelf->mClientListReceiver.find(pDataBlock->peer);
     if (netObj != lWeakSelf->mClientListReceiver.end()) {
         auto netCon = netObj->second;
-        if (lWeakSelf->receivePktCallback == nullptr) {
+        if (lWeakSelf->receivePktCallback == nullptr && lWeakSelf->receiveCallback == nullptr) {
             retVal = lWeakSelf->networkDataCallback((const uint8_t *) pDataBlock->payload, pDataBlock->payload_len, netCon, pDataBlock->peer, pDataBlock->flow_id);
-        } else {
+        } else if (lWeakSelf->receiveCallback == nullptr){
             retVal = lWeakSelf->receivePktCallback(*pDataBlock, netCon);
+        } else {
+            retVal = lWeakSelf->receiveCallback(pDataBlock, netCon);
         }
         rist_receiver_data_block_free2(&pDataBlock);
         return retVal;
