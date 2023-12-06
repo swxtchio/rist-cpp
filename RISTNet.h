@@ -274,6 +274,9 @@ public:
   /// Callback for statistics, called once every second
   std::function<void(const rist_stats& statistics)> statisticsCallback = nullptr;
 
+  // Get status of the peer 
+  rist_connection_status getConnectionStatus();
+
   // Delete copy and move constructors and assign operators
   RISTNetReceiver(RISTNetReceiver const &) = delete;             // Copy construct
   RISTNetReceiver(RISTNetReceiver &&) = delete;                  // Move construct
@@ -299,6 +302,12 @@ private:
 
   // Private method called when a statistics are delivered
   static int gotStatistics(void *pArg, const rist_stats *stats);
+
+  // Private method called when connection status changes??
+  static void connectionStatus(void *arg, struct rist_peer *peer, enum rist_connection_status peer_connection_status);
+
+  // Status of the connection
+  rist_connection_status mConnectionStatus = RIST_CONNECTION_TIMED_OUT;
 
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
@@ -519,6 +528,9 @@ public:
   /// Callback for statistics, called once every second
   std::function<void(const rist_stats& statistics)> statisticsCallback = nullptr;
 
+  // Get status of the peer 
+  rist_connection_status getConnectionStatus();
+
   // Delete copy and move constructors and assign operators
   RISTNetSender(RISTNetSender const &) = delete;             // Copy construct
   RISTNetSender(RISTNetSender &&) = delete;                  // Move construct
@@ -541,6 +553,12 @@ private:
 
   // Private method called when statistics are delivered
   static int gotStatistics(void *pArg, const rist_stats *stats);
+
+  // Private method called when connection status changes??
+  static void connectionStatus(void *arg, struct rist_peer *peer, enum rist_connection_status peer_connection_status);
+
+  // Status of the connection
+  rist_connection_status mConnectionStatus = RIST_CONNECTION_TIMED_OUT;
 
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;
