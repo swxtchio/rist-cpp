@@ -202,9 +202,18 @@ int RISTNetReceiver::gotStatistics(void *pArg, const rist_stats *stats) {
     return rist_stats_free(stats);
 }
 
+void RISTNetReceiver::connectionStatus(void *arg, struct rist_peer *peer, enum rist_connection_status peer_connection_status) {
+    RISTNetReceiver *lWeakSelf = static_cast<RISTNetReceiver*>(arg);
+    lWeakSelf->mConnectionStatus = peer_connection_status;
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 // RISTNetReceiver  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
+
+rist_connection_status RISTNetReceiver::getConnectionStatus() {
+    return mConnectionStatus;
+}
 
 void RISTNetReceiver::getActiveClients(
         std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
@@ -383,6 +392,13 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         return false;
     }
 
+    lStatus = rist_connection_status_callback_set(mRistContext, connectionStatus, this);
+    if (lStatus) {
+        LOGGER(true, LOGG_ERROR, "rist_conn_status_callback_set fail.")
+        destroyReceiver();
+        return false;
+    }
+
     lStatus = rist_start(mRistContext);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_receiver_start fail.")
@@ -518,9 +534,18 @@ int RISTNetSender::gotStatistics(void *pArg, const rist_stats *stats) {
     return rist_stats_free(stats);
 }
 
+void RISTNetSender::connectionStatus(void *arg, struct rist_peer *peer, enum rist_connection_status peer_connection_status) {
+    RISTNetSender *lWeakSelf = static_cast<RISTNetSender*>(arg);
+    lWeakSelf->mConnectionStatus = peer_connection_status;
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 // RISTNetSender  --  Callbacks --- End
 //---------------------------------------------------------------------------------------------------------------------
+
+rist_connection_status RISTNetSender::getConnectionStatus() {
+    return mConnectionStatus;
+}
 
 void RISTNetSender::getActiveClients(
         const std::function<void(std::map<rist_peer *, std::shared_ptr<NetworkConnection>> &)> lFunction) {
@@ -687,6 +712,13 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
     lStatus = rist_stats_callback_set(mRistContext, 1000, gotStatistics, this);
     if (lStatus) {
         LOGGER(true, LOGG_ERROR, "rist_stats_callback_set fail.")
+        destroySender();
+        return false;
+    }
+
+    lStatus = rist_connection_status_callback_set(mRistContext, connectionStatus, this);
+    if (lStatus) {
+        LOGGER(true, LOGG_ERROR, "rist_conn_status_callback_set fail.")
         destroySender();
         return false;
     }
