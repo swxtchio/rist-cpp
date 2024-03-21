@@ -9,7 +9,10 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
+
+if(UNIX)
 find_package(GTest REQUIRED)
+endif()
 
 #If no build type is set then force Release
 IF( NOT CMAKE_BUILD_TYPE )
