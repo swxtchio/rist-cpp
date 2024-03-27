@@ -7,6 +7,16 @@
 #include <thread>
 #include "RISTNet.h"
 
+#ifdef WIN32
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "iphlpapi.lib")
+#include <Winsock2.h>
+#define _WINSOCKAPI_
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 //Create the receiver
 RISTNetReceiver myRISTNetReceiver;
 
