@@ -277,6 +277,10 @@ public:
   // Get status of the peer 
   rist_connection_status getConnectionStatus();
 
+  // Get local socket address
+  uint16_t getSockPort_be();
+  uint32_t getSockIp_be();
+
   // Delete copy and move constructors and assign operators
   RISTNetReceiver(RISTNetReceiver const &) = delete;             // Copy construct
   RISTNetReceiver(RISTNetReceiver &&) = delete;                  // Move construct
@@ -308,6 +312,10 @@ private:
 
   // Status of the connection
   rist_connection_status mConnectionStatus = RIST_CONNECTION_TIMED_OUT;
+
+  // Address of the local socket
+  uint16_t mSocketPort_be;
+  uint32_t mSocketIp_be;
 
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
@@ -531,6 +539,10 @@ public:
   // Get status of the peer 
   rist_connection_status getConnectionStatus();
 
+  // Get local socket address
+  uint16_t getSockPort_be();
+  uint32_t getSockIp_be();
+
   // Delete copy and move constructors and assign operators
   RISTNetSender(RISTNetSender const &) = delete;             // Copy construct
   RISTNetSender(RISTNetSender &&) = delete;                  // Move construct
@@ -559,6 +571,10 @@ private:
 
   // Status of the connection
   rist_connection_status mConnectionStatus = RIST_CONNECTION_TIMED_OUT;
+
+  // Address of the local socket
+  uint16_t mSocketPort_be;
+  uint32_t mSocketIp_be;
 
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;
