@@ -314,8 +314,8 @@ private:
   rist_connection_status mConnectionStatus = RIST_CONNECTION_TIMED_OUT;
 
   // Address of the local socket
-  uint16_t mSocketPort_be;
-  uint32_t mSocketIp_be;
+  uint16_t mSocketPort_be{0};
+  uint32_t mSocketIp_be{0};
 
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
@@ -573,8 +573,8 @@ private:
   rist_connection_status mConnectionStatus = RIST_CONNECTION_TIMED_OUT;
 
   // Address of the local socket
-  uint16_t mSocketPort_be;
-  uint32_t mSocketIp_be;
+  uint16_t mSocketPort_be{0};
+  uint32_t mSocketIp_be{0};
 
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;

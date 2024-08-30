@@ -204,14 +204,16 @@ int RISTNetReceiver::gotStatistics(void *pArg, const rist_stats *stats) {
 
 void RISTNetReceiver::connectionStatus(void *arg, struct rist_peer *peer, enum rist_connection_status peer_connection_status) {
     RISTNetReceiver *lWeakSelf = static_cast<RISTNetReceiver*>(arg);
-    int sock, sockExtra;
-    const auto& ret = rist_peer_get_socket(peer, &sock, &sockExtra);
-    struct sockaddr_in sockAddr;
-    socklen_t sockAddrLen = sizeof(sockAddr);
-    int ret_sockname = getsockname(sock, (struct sockaddr *)&sockAddr, &sockAddrLen);
-    lWeakSelf->mSocketPort_be = sockAddr.sin_port;
-    lWeakSelf->mSocketIp_be = sockAddr.sin_addr.s_addr;
     lWeakSelf->mConnectionStatus = peer_connection_status;
+    int sock, sockExtra;
+    if(rist_peer_get_socket(peer, &sock, &sockExtra) == 0) {
+        struct sockaddr_in sockAddr{};
+        socklen_t sockAddrLen = sizeof(sockAddr);
+        if(getsockname(sock, (struct sockaddr *)&sockAddr, &sockAddrLen) == 0) {
+            lWeakSelf->mSocketPort_be = sockAddr.sin_port;
+            lWeakSelf->mSocketIp_be = sockAddr.sin_addr.s_addr;
+        }
+    }
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -551,14 +553,16 @@ int RISTNetSender::gotStatistics(void *pArg, const rist_stats *stats) {
 
 void RISTNetSender::connectionStatus(void *arg, struct rist_peer *peer, enum rist_connection_status peer_connection_status) {
     RISTNetSender *lWeakSelf = static_cast<RISTNetSender*>(arg);
-    int sock, sockExtra;
-    const auto& ret = rist_peer_get_socket(peer, &sock, &sockExtra);
-    struct sockaddr_in sockAddr;
-    socklen_t sockAddrLen = sizeof(sockAddr);
-    int ret_sockname = getsockname(sock, (struct sockaddr *)&sockAddr, &sockAddrLen);
-    lWeakSelf->mSocketPort_be = sockAddr.sin_port;
-    lWeakSelf->mSocketIp_be = sockAddr.sin_addr.s_addr;
     lWeakSelf->mConnectionStatus = peer_connection_status;
+    int sock, sockExtra;
+    if(rist_peer_get_socket(peer, &sock, &sockExtra) == 0) {
+        struct sockaddr_in sockAddr{};
+        socklen_t sockAddrLen = sizeof(sockAddr);
+        if(getsockname(sock, (struct sockaddr *)&sockAddr, &sockAddrLen) == 0) {
+            lWeakSelf->mSocketPort_be = sockAddr.sin_port;
+            lWeakSelf->mSocketIp_be = sockAddr.sin_addr.s_addr;
+        }
+    }
 }
 
 //---------------------------------------------------------------------------------------------------------------------
