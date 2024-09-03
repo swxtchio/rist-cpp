@@ -14,6 +14,7 @@ if(UNIX)
 find_package(GTest REQUIRED)
 endif()
 
+if(WIN32)
 # Set compiler options.
 set(variables
 	CMAKE_C_FLAGS_DEBUG
@@ -31,6 +32,7 @@ foreach(variable ${variables})
 		string(REGEX REPLACE "/MD" "/MT" ${variable} "${${variable}}")
 	endif()
 endforeach()
+endif()
 
 #If no build type is set then force Release
 IF( NOT CMAKE_BUILD_TYPE )
