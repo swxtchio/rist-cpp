@@ -14,6 +14,24 @@ if(UNIX)
 find_package(GTest REQUIRED)
 endif()
 
+# Set compiler options.
+set(variables
+	CMAKE_C_FLAGS_DEBUG
+	CMAKE_C_FLAGS_MINSIZEREL
+	CMAKE_C_FLAGS_RELEASE
+	CMAKE_C_FLAGS_RELWITHDEBINFO
+	CMAKE_CXX_FLAGS_DEBUG
+	CMAKE_CXX_FLAGS_MINSIZEREL
+	CMAKE_CXX_FLAGS_RELEASE
+	CMAKE_CXX_FLAGS_RELWITHDEBINFO
+)
+
+foreach(variable ${variables})
+	if(${variable} MATCHES "/MD")
+		string(REGEX REPLACE "/MD" "/MT" ${variable} "${${variable}}")
+	endif()
+endforeach()
+
 #If no build type is set then force Release
 IF( NOT CMAKE_BUILD_TYPE )
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
@@ -29,7 +47,7 @@ include(ExternalProject)
 
 if(WIN32)
 set(BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/rist/build")
-set(BUILD_CMD cd ${CMAKE_CURRENT_SOURCE_DIR}/rist/build && meson -Dbuiltin_cjson=true --default-library=static .. && ninja)
+set(BUILD_CMD cd ${CMAKE_CURRENT_SOURCE_DIR}/rist/build && meson -Dbuiltin_cjson=true --default-library=static -Db_vscrt=mt .. && ninja)
 ExternalProject_Add(project_rist
         CONFIGURE_COMMAND ""
         GIT_REPOSITORY https://code.videolan.org/rist/librist.git
