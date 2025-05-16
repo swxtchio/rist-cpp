@@ -142,6 +142,15 @@ public:
                     RISTNetReceiverSettings &rSettings);
 
   /**
+   * @brief Receive packet
+   *
+   * Read a packet from the queue and write it in the passed struct.
+   *
+   * @param data_block is the block where the packet will be written
+  */
+  void receivePkt(rist_data_block **data_block);
+
+  /**
    * @brief Get peer config
    *
    * Get config set to the last connected peer.
@@ -290,7 +299,6 @@ public:
 private:
 
   std::shared_ptr<NetworkConnection> validateConnectionStub(std::string lIPAddress, uint16_t lPort);
-  int dataFromClientStub(const uint8_t *pBuf, size_t lSize, std::shared_ptr<NetworkConnection> &rConnection);
 
   // Private method receiving the data from librist C-API
   static int receiveData(void *pArg, rist_data_block *data_block);

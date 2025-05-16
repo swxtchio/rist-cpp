@@ -70,8 +70,6 @@ RISTNetReceiver::RISTNetReceiver() {
     // Set the callback stubs
     validateConnectionCallback = std::bind(&RISTNetReceiver::validateConnectionStub, this, std::placeholders::_1,
                                            std::placeholders::_2);
-    networkDataCallback = std::bind(&RISTNetReceiver::dataFromClientStub, this, std::placeholders::_1,
-                                    std::placeholders::_2, std::placeholders::_3);
     LOGGER(false, LOGG_NOTIFY, "RISTNetReceiver constructed")
 }
 
@@ -96,12 +94,6 @@ std::shared_ptr<RISTNetReceiver::NetworkConnection> RISTNetReceiver::validateCon
            "validateConnectionCallback not implemented. Will not accept connection from: " << lIPAddress << ":"
                                                                                            << unsigned(lPort))
     return nullptr;
-}
-
-int RISTNetReceiver::dataFromClientStub(const uint8_t *pBuf, size_t lSize,
-                                         std::shared_ptr<NetworkConnection> &rConnection) {
-    LOGGER(true, LOGG_ERROR, "networkDataCallback not implemented. Data is lost")
-    return -1;
 }
 
 int RISTNetReceiver::receiveData(void *pArg, rist_data_block *pDataBlock) {
@@ -230,6 +222,13 @@ uint16_t RISTNetReceiver::getSockPort_be() {
 
 uint32_t RISTNetReceiver::getSockIp_be() {
     return mSocketIp_be;
+}
+
+void RISTNetReceiver::receivePkt(rist_data_block **data_block) {
+    int queue_size = rist_receiver_data_read2(mRistContext, data_block, 5);
+    if (queue_size && queue_size % 10 == 0) {
+        LOGGER(true, LOGG_ERROR, "Falling behind on rist_receiver_data_read: " << queue_size);
+    }
 }
 
 void RISTNetReceiver::getActiveClients(
@@ -388,11 +387,15 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
         return false;
     }
 
-    lStatus = rist_receiver_data_callback_set2(mRistContext, receiveData, this);
-    if (lStatus) {
-        LOGGER(true, LOGG_ERROR, "rist_receiver_data_callback_set fail.")
-        destroyReceiver();
-        return false;
+    if (receivePktCallback != nullptr || receiveCallback != nullptr || networkDataCallback != nullptr) {
+        lStatus = rist_receiver_data_callback_set2(mRistContext, receiveData, this);
+        if (lStatus) {
+            LOGGER(true, LOGG_ERROR, "rist_receiver_data_callback_set fail.")
+            destroyReceiver();
+            return false;
+        }
+    } else {
+        LOGGER(true, LOGG_NOTIFY, "no receive callback function defined, data should be received with receivePkt()")
     }
 
     lStatus = rist_auth_handler_set(mRistContext, clientConnect, clientDisconnect, this);
