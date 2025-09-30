@@ -23,7 +23,7 @@ bool RISTNetTools::isIPv6(const std::string &rStr) {
     return inet_pton(AF_INET6, rStr.c_str(), &(lsa.sin6_addr)) != 0;
 }
 
-bool RISTNetTools::buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen) {
+bool RISTNetTools::buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen, const std::string &bindIP) {
     int lIPType;
     if (isIPv4(lIP)) {
         lIPType = AF_INET;
@@ -53,6 +53,16 @@ bool RISTNetTools::buildRISTURL(const std::string &lIP, const std::string &lPort
         lRistURL += lIP + ":" + lPort;
     } else {
         lRistURL += "[" + lIP + "]:" + lPort;
+    }
+    if (!lListen && !bindIP.empty()) {
+        if (isIPv4(bindIP)) {
+            lRistURL += "?miface=" + bindIP;
+        } else if (isIPv6(bindIP)) {
+            lRistURL += "?miface=[" + bindIP + "]";
+        } else {
+            LOGGER(true, LOGG_ERROR, " " << "Provided bind IP-Address '" << bindIP << "' is not a valid IPv4 or IPv6 address.")
+            return false;
+        }
     }
     rURL = lRistURL;
     return true;

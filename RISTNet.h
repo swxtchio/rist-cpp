@@ -47,7 +47,7 @@
 class RISTNetTools {
 public:
     /// Build the librist url based on name/ip, port and if it's a listen or not peer
-    static bool buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen);
+    static bool buildRISTURL(const std::string &lIP, const std::string &lPort, std::string &rURL, bool lListen, const std::string &bindIP = "");
 private:
 
     /// This class cannot be instantiated
