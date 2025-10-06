@@ -226,6 +226,26 @@ rist_connection_status RISTNetReceiver::getConnectionStatus() {
     return mConnectionStatus;
 }
 
+bool RISTNetReceiver::setSocketOpt(int level, int optionName, const void* optValue, socklen_t optValSize) {
+    int sock = -1, sockExtra = -1;
+    if (rist_peer_get_socket(mPeer, &sock, &sockExtra) != 0) {
+        return false; // couldn’t retrieve sockets
+    }
+    auto applyOpt = [&](int fd) {
+        if (fd < 0) return true; // ignore missing extra socket
+    #if defined(_WIN32)
+        return (::setsockopt(fd, level, optionName,
+                             static_cast<const char*>(optValue), optValSize) == 0);
+    #else
+        return (::setsockopt(fd, level, optionName, optValue, optValSize) == 0);
+    #endif
+    };
+
+    bool okMain = applyOpt(sock);
+    bool okExtra = applyOpt(sockExtra);
+    return okMain && okExtra;
+}
+
 uint16_t RISTNetReceiver::getSockPort_be() {
     return mSocketPort_be;
 }
@@ -372,8 +392,7 @@ bool RISTNetReceiver::initReceiver(std::vector<std::string> &rURLList,
             return false;
         }
 
-        rist_peer *peer;
-        lStatus =  rist_peer_create(mRistContext, &peer, &mRistPeerConfig);
+        lStatus =  rist_peer_create(mRistContext, &mPeer, &mRistPeerConfig);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_receiver_peer_create fail: " << rURL)
             destroyReceiver();
@@ -586,6 +605,26 @@ rist_connection_status RISTNetSender::getConnectionStatus() {
     return mConnectionStatus;
 }
 
+bool RISTNetSender::setSocketOpt(int level, int optionName, const void* optValue, socklen_t optValSize) {
+    int sock = -1, sockExtra = -1;
+    if (rist_peer_get_socket(mPeer, &sock, &sockExtra) != 0) {
+        return false; // couldn’t retrieve sockets
+    }
+    auto applyOpt = [&](int fd) {
+        if (fd < 0) return true; // ignore missing extra socket
+    #if defined(_WIN32)
+        return (::setsockopt(fd, level, optionName,
+                             static_cast<const char*>(optValue), optValSize) == 0);
+    #else
+        return (::setsockopt(fd, level, optionName, optValue, optValSize) == 0);
+    #endif
+    };
+
+    bool okMain = applyOpt(sock);
+    bool okExtra = applyOpt(sockExtra);
+    return okMain && okExtra;
+}
+
 uint16_t RISTNetSender::getSockPort_be() {
     return mSocketPort_be;
 }
@@ -724,8 +763,7 @@ bool RISTNetSender::initSender(std::vector<std::tuple<std::string,int>> &rPeerLi
             return false;
         }
 
-        rist_peer *peer;
-        lStatus =  rist_peer_create(mRistContext, &peer, &mRistPeerConfig);
+        lStatus =  rist_peer_create(mRistContext, &mPeer, &mRistPeerConfig);
         if (lStatus) {
             LOGGER(true, LOGG_ERROR, "rist_sender_peer_create fail: " << peerURL)
             destroySender();

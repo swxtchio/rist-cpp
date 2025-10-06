@@ -283,6 +283,9 @@ public:
   /// Callback for statistics, called once every second
   std::function<void(const rist_stats& statistics)> statisticsCallback = nullptr;
 
+  // Set a socket option on the peer socket
+  bool setSocketOpt(int level, int optionName, const void* optValue, socklen_t optValSize);
+
   // Get status of the peer 
   rist_connection_status getConnectionStatus();
 
@@ -327,6 +330,9 @@ private:
 
   // The context of a RIST receiver
   rist_ctx *mRistContext = nullptr;
+
+  // Peer object that will be passed to init function
+  rist_peer *mPeer = nullptr;
 
   // The configuration of the RIST receiver
   rist_peer_config mRistPeerConfig{};
@@ -547,6 +553,9 @@ public:
   // Get status of the peer 
   rist_connection_status getConnectionStatus();
 
+  // Set a socket option on the peer socket
+  bool setSocketOpt(int level, int optionName, const void* optValue, socklen_t optValSize);
+
   // Get local socket address
   uint16_t getSockPort_be();
   uint32_t getSockIp_be();
@@ -586,6 +595,9 @@ private:
 
   // The context of a RIST sender
   rist_ctx *mRistContext = nullptr;
+
+  // Peer object that will be passed to init function
+  rist_peer *mPeer = nullptr;
 
   // The configuration of the RIST sender
   rist_peer_config mRistPeerConfig{};
