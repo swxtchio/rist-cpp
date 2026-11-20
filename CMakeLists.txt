@@ -56,6 +56,7 @@ ExternalProject_Add(project_rist
         GIT_TAG v0.2.11
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rist
         BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rist
+        PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/rist -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patch-msvc-stdatomic.cmake
         BUILD_COMMAND ${BUILD_CMD}
         GIT_PROGRESS 1
         STEP_TARGETS build
